@@ -17,7 +17,9 @@ An Electron-based presentation tool for churches. Displays Bible verses (Nepali 
 
 ## Download
 
-Grab the latest `.exe` from the [Releases page](https://github.com/NirajXtha/church/releases).
+Grab the latest `Church Presenter.exe` from the [Releases page](https://github.com/NirajXtha/church/releases).
+
+> **Windows SmartScreen**: Since the app is not code-signed (common for open-source projects), Windows may show "Windows protected your PC" on first run. Click **More info** → **Run anyway** to proceed. Your songs and data stay safe — the app never phones home beyond checking for updates.
 
 ## Development
 

@@ -43,23 +43,15 @@
     },
     "win": {
       "artifactName": "${productName}.${ext}",
+      "sign": false,
+      "signAndEditExecutable": false,
       "target": [
-        {
-          "target": "nsis",
-          "arch": ["x64"]
-        },
         {
           "target": "portable",
           "arch": ["x64"]
         }
       ],
       "icon": null
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true
     }
   },
   "keywords": [

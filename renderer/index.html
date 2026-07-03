@@ -1,249 +1,303 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Church Presenter</title>
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-<div id="app">
-  <div id="update-bar" class="update-bar hidden">
-    <span id="update-bar-text"></span>
-    <button id="update-bar-btn" class="update-btn hidden">Download</button>
-  </div>
-  <div id="sidebar">
-    <div class="sidebar-header">
-      <h2>Church Presenter</h2>
-    </div>
-    <div class="sidebar-tabs">
-      <button class="tab-btn active" data-tab="bible">Bible</button>
-      <button class="tab-btn" data-tab="songs">Songs</button>
-      <button class="tab-btn" data-tab="settings">Settings</button>
-    </div>
-    <div class="sidebar-content">
-      <div class="tab-panel active" id="tab-bible">
-        <div class="search-section">
-          <div class="search-bar">
-            <input type="text" id="bible-search" placeholder="Search verses...">
-            <button id="search-btn">Search</button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Church Presenter</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="update-bar" class="update-bar hidden">
+        <span id="update-bar-text"></span>
+        <button id="update-bar-btn" class="update-btn hidden">Download</button>
+      </div>
+      <div id="sidebar">
+        <div class="sidebar-header">
+          <h2>Church Presenter</h2>
+        </div>
+        <div class="sidebar-tabs">
+          <button class="tab-btn active" data-tab="bible">Bible</button>
+          <button class="tab-btn" data-tab="songs">Songs</button>
+          <button class="tab-btn" data-tab="settings">Settings</button>
+        </div>
+        <div class="sidebar-content">
+          <div class="tab-panel active" id="tab-bible">
+            <div class="search-section">
+              <div class="search-bar">
+                <input
+                  type="text"
+                  id="bible-search"
+                  placeholder="Search verses..."
+                />
+                <button id="search-btn">Search</button>
+              </div>
+              <div class="lang-toggle">
+                <button class="lang-btn active" data-lang="nepali">
+                  Nepali
+                </button>
+                <button class="lang-btn" data-lang="english">English</button>
+              </div>
+              <div class="dual-toggle">
+                <label class="switch-label">
+                  <input type="checkbox" id="dual-mode" />
+                  <span class="switch-slider"></span>
+                  Show Both
+                </label>
+              </div>
+            </div>
+            <div class="browser-section">
+              <div class="form-row">
+                <div class="form-group half">
+                  <label>Book</label>
+                  <select id="book-select"></select>
+                </div>
+                <div class="form-group half">
+                  <label>Chapter</label>
+                  <select id="chapter-select"></select>
+                </div>
+              </div>
+              <div class="verse-browser" id="verse-browser">
+                <div class="browser-placeholder">Select a book and chapter</div>
+              </div>
+            </div>
+            <div class="stack-section" id="stack-section" style="display: none">
+              <h3>Stack (Ctrl+Click to add)</h3>
+              <div id="stack-list"></div>
+              <div class="stack-controls">
+                <button id="present-stack-btn" class="primary-btn">
+                  Present Stack
+                </button>
+                <button id="clear-stack-btn" class="secondary-btn">
+                  Clear Stack
+                </button>
+              </div>
+            </div>
           </div>
-          <div class="lang-toggle">
-            <button class="lang-btn active" data-lang="nepali">Nepali</button>
-            <button class="lang-btn" data-lang="english">English</button>
+
+          <div class="tab-panel" id="tab-songs">
+            <div class="song-controls">
+              <button id="new-song-btn" class="primary-btn">+ New Song</button>
+              <input
+                type="text"
+                id="song-search"
+                placeholder="Search songs..."
+              />
+            </div>
+            <div class="song-list" id="song-list"></div>
+            <div class="song-lyrics-preview" id="song-lyrics-preview">
+              <div class="lyrics-placeholder">Select a song to preview</div>
+            </div>
+            <div class="song-controls-row">
+              <button id="display-song-btn" class="primary-btn">
+                Display on Screen
+              </button>
+              <button id="edit-song-btn" class="secondary-btn">
+                Edit Song
+              </button>
+            </div>
           </div>
-          <div class="dual-toggle">
-            <label class="switch-label">
-              <input type="checkbox" id="dual-mode">
-              <span class="switch-slider"></span>
-              Show Both
-            </label>
+
+          <div class="tab-panel" id="tab-settings">
+            <div class="settings-section">
+              <h3>Background</h3>
+              <div class="bg-options">
+                <button id="select-image-btn" class="secondary-btn">
+                  Select Image
+                </button>
+                <button id="select-video-btn" class="secondary-btn">
+                  Select Video
+                </button>
+                <button id="clear-bg-btn" class="secondary-btn">
+                  No Background
+                </button>
+              </div>
+              <div id="bg-preview" class="bg-preview"></div>
+              <div class="form-group">
+                <label>Theme</label>
+                <select id="theme-select">
+                  <option value="">None (Image/Video)</option>
+                  <option value="christmas">Christmas</option>
+                  <option value="book-ring">Book Ring</option>
+                  <option value="book">Book</option>
+                  <option value="candle">Candle</option>
+                  <option value="cross-sky">Cross Sky</option>
+                  <option value="cross">Cross</option>
+                  <option value="dark">Dark</option>
+                  <option value="flowers">Flowers</option>
+                  <option value="man-standing">Man Standing</option>
+                  <option value="ribbon">Ribbon</option>
+                  <option value="rose">Rose</option>
+                  <option value="sunset-cross">Sunset Cross</option>
+                  <option value="random">Random</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Background Fit</label>
+                <select id="bg-fit">
+                  <option value="cover">Cover</option>
+                  <option value="contain">Contain</option>
+                  <option value="stretch">Stretch</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Background Dim</label>
+                <input type="range" id="bg-dim" min="0" max="100" value="0" />
+                <span id="bg-dim-label">0%</span>
+              </div>
+            </div>
+            <div class="settings-section">
+              <h3>Text Style</h3>
+              <div class="form-group">
+                <label>Font Size</label>
+                <input
+                  type="range"
+                  id="font-size"
+                  min="24"
+                  max="120"
+                  value="48"
+                />
+                <span id="font-size-label">48px</span>
+              </div>
+              <div class="form-group">
+                <label>Text Color</label>
+                <input type="color" id="text-color" value="#ffffff" />
+              </div>
+              <div class="form-group">
+                <label>Text Align</label>
+                <select id="text-align">
+                  <option value="center">Center</option>
+                  <option value="left">Left</option>
+                  <option value="right">Right</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Verse Spacing</label>
+                <input
+                  type="range"
+                  id="verse-spacing"
+                  min="8"
+                  max="80"
+                  value="24"
+                />
+                <span id="verse-spacing-label">24px</span>
+              </div>
+              <div class="form-group">
+                <label>Shadow</label>
+                <select id="text-shadow">
+                  <option value="none">None</option>
+                  <option value="light">Light</option>
+                  <option value="medium" selected>Medium</option>
+                  <option value="heavy">Heavy</option>
+                </select>
+              </div>
+            </div>
+            <div class="settings-section">
+              <h3>Songs</h3>
+              <div class="form-group">
+                <label>Song Format</label>
+                <select id="song-format">
+                  <option value="verses-only">Verses Only</option>
+                  <option value="with-title">With Title</option>
+                  <option value="scroll">Scroll Mode</option>
+                </select>
+              </div>
+            </div>
+            <div class="settings-section">
+              <h3>Verse Overlay</h3>
+              <div class="dual-toggle">
+                <label class="switch-label">
+                  <input type="checkbox" id="overlay-enable" />
+                  <span class="switch-slider"></span>
+                  Show Overlay
+                </label>
+              </div>
+              <div class="form-group" style="margin-top: 8px">
+                <label>Position</label>
+                <select id="overlay-position">
+                  <option value="top">Top</option>
+                  <option value="center" selected>Center</option>
+                  <option value="bottom">Bottom</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Font Size</label>
+                <input
+                  type="range"
+                  id="overlay-font-size"
+                  min="12"
+                  max="48"
+                  value="20"
+                />
+                <span id="overlay-font-size-label">20px</span>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="browser-section">
+      </div>
+
+      <div id="main-area">
+        <div id="display-area">
+          <div class="display-empty">Double-click a verse or present stack</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="song-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Add/Edit Song</h3>
+          <button class="close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Title</label>
+            <input type="text" id="song-title" placeholder="Song title" />
+          </div>
+          <div class="form-group">
+            <label>Lyrics (separate verses with blank lines)</label>
+            <textarea
+              id="song-lyrics"
+              rows="12"
+              placeholder="Enter lyrics...&#10;&#10;Verse 1 text here&#10;&#10;Verse 2 text here"
+            ></textarea>
+          </div>
           <div class="form-row">
             <div class="form-group half">
-              <label>Book</label>
-              <select id="book-select"></select>
+              <label>Category</label>
+              <input
+                type="text"
+                id="song-category"
+                placeholder="Worship, Hymn..."
+              />
             </div>
             <div class="form-group half">
-              <label>Chapter</label>
-              <select id="chapter-select"></select>
+              <label>Language</label>
+              <input
+                type="text"
+                id="song-language"
+                placeholder="Nepali, English..."
+              />
             </div>
           </div>
-          <div class="verse-browser" id="verse-browser">
-            <div class="browser-placeholder">Select a book and chapter</div>
+          <div class="form-row">
+            <div class="form-group half">
+              <label>Author</label>
+              <input type="text" id="song-author" placeholder="Author name" />
+            </div>
+            <div class="form-group half">
+              <label>Tags</label>
+              <input type="text" id="song-tags" placeholder="tag1, tag2" />
+            </div>
           </div>
         </div>
-        <div class="stack-section" id="stack-section" style="display:none">
-          <h3>Stack (Ctrl+Click to add)</h3>
-          <div id="stack-list"></div>
-          <div class="stack-controls">
-            <button id="present-stack-btn" class="primary-btn">Present Stack</button>
-            <button id="clear-stack-btn" class="secondary-btn">Clear Stack</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="tab-panel" id="tab-songs">
-        <div class="song-controls">
-          <button id="new-song-btn" class="primary-btn">+ New Song</button>
-          <input type="text" id="song-search" placeholder="Search songs...">
-        </div>
-        <div class="song-list" id="song-list"></div>
-        <div class="song-lyrics-preview" id="song-lyrics-preview">
-          <div class="lyrics-placeholder">Select a song to preview</div>
-        </div>
-        <div class="song-controls-row">
-          <button id="display-song-btn" class="primary-btn">Display on Screen</button>
-          <button id="edit-song-btn" class="secondary-btn">Edit Song</button>
-        </div>
-      </div>
-
-      <div class="tab-panel" id="tab-settings">
-        <div class="settings-section">
-          <h3>Background</h3>
-          <div class="bg-options">
-            <button id="select-image-btn" class="secondary-btn">Select Image</button>
-            <button id="select-video-btn" class="secondary-btn">Select Video</button>
-            <button id="clear-bg-btn" class="secondary-btn">No Background</button>
-          </div>
-          <div id="bg-preview" class="bg-preview"></div>
-          <div class="form-group">
-            <label>Theme</label>
-            <select id="theme-select">
-              <option value="">None (Image/Video)</option>
-              <option value="christmas">Christmas</option>
-              <option value="book-ring">Book Ring</option>
-              <option value="book">Book</option>
-              <option value="candle">Candle</option>
-              <option value="cross-sky">Cross Sky</option>
-              <option value="cross">Cross</option>
-              <option value="dark">Dark</option>
-              <option value="flowers">Flowers</option>
-              <option value="man-standing">Man Standing</option>
-              <option value="ribbon">Ribbon</option>
-              <option value="rose">Rose</option>
-              <option value="sunset-cross">Sunset Cross</option>
-              <option value="random">Random</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Background Fit</label>
-            <select id="bg-fit">
-              <option value="cover">Cover</option>
-              <option value="contain">Contain</option>
-              <option value="stretch">Stretch</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Background Dim</label>
-            <input type="range" id="bg-dim" min="0" max="100" value="0">
-            <span id="bg-dim-label">0%</span>
-          </div>
-        </div>
-        <div class="settings-section">
-          <h3>Text Style</h3>
-          <div class="form-group">
-            <label>Font Size</label>
-            <input type="range" id="font-size" min="24" max="120" value="48">
-            <span id="font-size-label">48px</span>
-          </div>
-          <div class="form-group">
-            <label>Text Color</label>
-            <input type="color" id="text-color" value="#ffffff">
-          </div>
-          <div class="form-group">
-            <label>Text Align</label>
-            <select id="text-align">
-              <option value="center">Center</option>
-              <option value="left">Left</option>
-              <option value="right">Right</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Verse Spacing</label>
-            <input type="range" id="verse-spacing" min="8" max="80" value="24">
-            <span id="verse-spacing-label">24px</span>
-          </div>
-          <div class="form-group">
-            <label>Shadow</label>
-            <select id="text-shadow">
-              <option value="none">None</option>
-              <option value="light">Light</option>
-              <option value="medium" selected>Medium</option>
-              <option value="heavy">Heavy</option>
-            </select>
-          </div>
-        </div>
-        <div class="settings-section">
-          <h3>Songs</h3>
-          <div class="form-group">
-            <label>Song Format</label>
-            <select id="song-format">
-              <option value="verses-only">Verses Only</option>
-              <option value="with-title">With Title</option>
-              <option value="scroll">Scroll Mode</option>
-            </select>
-          </div>
-        </div>
-        <div class="settings-section">
-          <h3>Verse Overlay</h3>
-          <div class="dual-toggle">
-            <label class="switch-label">
-              <input type="checkbox" id="overlay-enable">
-              <span class="switch-slider"></span>
-              Show Overlay
-            </label>
-          </div>
-          <div class="form-group" style="margin-top:8px">
-            <label>Position</label>
-            <select id="overlay-position">
-              <option value="top">Top</option>
-              <option value="center" selected>Center</option>
-              <option value="bottom">Bottom</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Font Size</label>
-            <input type="range" id="overlay-font-size" min="12" max="48" value="20">
-            <span id="overlay-font-size-label">20px</span>
-          </div>
+        <div class="modal-footer">
+          <button id="song-delete-btn" class="danger-btn hidden">Delete</button>
+          <button id="song-save-btn" class="primary-btn">Save Song</button>
         </div>
       </div>
     </div>
-  </div>
 
-  <div id="main-area">
-    <div id="display-area">
-      <div class="display-empty">Double-click a verse or present stack</div>
-    </div>
-  </div>
-</div>
-
-<div id="song-modal" class="modal hidden">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>Add/Edit Song</h3>
-      <button class="close-btn">&times;</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label>Title</label>
-        <input type="text" id="song-title" placeholder="Song title">
-      </div>
-      <div class="form-group">
-        <label>Lyrics (separate verses with blank lines)</label>
-        <textarea id="song-lyrics" rows="12" placeholder="Enter lyrics...&#10;&#10;Verse 1 text here&#10;&#10;Verse 2 text here"></textarea>
-      </div>
-      <div class="form-row">
-        <div class="form-group half">
-          <label>Category</label>
-          <input type="text" id="song-category" placeholder="Worship, Hymn...">
-        </div>
-        <div class="form-group half">
-          <label>Language</label>
-          <input type="text" id="song-language" placeholder="Nepali, English...">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group half">
-          <label>Author</label>
-          <input type="text" id="song-author" placeholder="Author name">
-        </div>
-        <div class="form-group half">
-          <label>Tags</label>
-          <input type="text" id="song-tags" placeholder="tag1, tag2">
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button id="song-delete-btn" class="danger-btn hidden">Delete</button>
-      <button id="song-save-btn" class="primary-btn">Save Song</button>
-    </div>
-  </div>
-</div>
-
-<script src="app.js"></script>
-</body>
+    <script src="app.js"></script>
+  </body>
 </html>
