@@ -673,6 +673,8 @@ function setupSettings() {
   document.getElementById('select-image-btn').addEventListener('click', async () => {
     const path = await window.api.selectFile('image');
     if (path) {
+      state.settings.theme = '';
+      document.getElementById('theme-select').value = '';
       state.settings.bgType = 'image';
       state.settings.bgPath = path;
       const fileUrl = 'file:///' + path.replace(/\\/g, '/');
@@ -686,6 +688,8 @@ function setupSettings() {
   document.getElementById('select-video-btn').addEventListener('click', async () => {
     const path = await window.api.selectFile('video');
     if (path) {
+      state.settings.theme = '';
+      document.getElementById('theme-select').value = '';
       state.settings.bgType = 'video';
       state.settings.bgPath = path;
       document.getElementById('bg-preview').style.background = '#0f3460';
@@ -696,8 +700,10 @@ function setupSettings() {
   });
 
   document.getElementById('clear-bg-btn').addEventListener('click', () => {
+    state.settings.theme = '';
     state.settings.bgType = null;
     state.settings.bgPath = null;
+    document.getElementById('theme-select').value = '';
     document.getElementById('bg-preview').style.backgroundImage = '';
     document.getElementById('bg-preview').classList.remove('has-bg');
     document.getElementById('bg-preview').textContent = '';
@@ -759,42 +765,48 @@ function setupSettings() {
   });
 }
 
-const THEME_FILES = [
-  'wallhaven-0w2qqr.jpg',
-  'wallhaven-2yj5xy.jpg',
-  'wallhaven-47zwo9.jpg',
-  'wallhaven-49vpyd.jpg',
-  'wallhaven-8xl2m2.jpg',
-  'wallhaven-j5k9rp.jpg',
-  'wallhaven-k91e37.jpg',
-  'wallhaven-l8j932.png',
-  'wallhaven-nm2xo9.jpg',
-  'wallhaven-nm5v2k.jpg',
-  'wallhaven-x1pm3d.jpg',
-  'wallhaven-yqx7wg.jpg',
+const THEME_ENTRIES = [
+  { id: 'christmas', file: 'Christmas.jpg', label: 'Christmas' },
+  { id: 'book-ring', file: 'book-ring.jpg', label: 'Book Ring' },
+  { id: 'book', file: 'book.jpg', label: 'Book' },
+  { id: 'candle', file: 'candle.png', label: 'Candle' },
+  { id: 'cross-sky', file: 'cross-sky.jpg', label: 'Cross Sky' },
+  { id: 'cross', file: 'cross.jpg', label: 'Cross' },
+  { id: 'dark', file: 'dark.jpg', label: 'Dark' },
+  { id: 'flowers', file: 'flowers.jpg', label: 'Flowers' },
+  { id: 'man-standing', file: 'man-standing.jpg', label: 'Man Standing' },
+  { id: 'ribbon', file: 'ribbon.jpg', label: 'Ribbon' },
+  { id: 'rose', file: 'rose.jpg', label: 'Rose' },
+  { id: 'sunset-cross', file: 'sunset-cross.jpg', label: 'Sunset Cross' },
 ];
 
 function getThemeFile(theme) {
   if (!theme || theme === '') return null;
   if (theme === 'random') {
-    const idx = Math.floor(Math.random() * THEME_FILES.length);
-    return THEME_FILES[idx];
+    const idx = Math.floor(Math.random() * THEME_ENTRIES.length);
+    return THEME_ENTRIES[idx].file;
   }
-  const match = theme.match(/^background-(\d+)$/);
-  if (match) {
-    const idx = parseInt(match[1]) - 1;
-    if (idx >= 0 && idx < THEME_FILES.length) return THEME_FILES[idx];
-  }
-  return null;
+  const entry = THEME_ENTRIES.find(e => e.id === theme);
+  return entry ? entry.file : null;
 }
 
 async function applyThemeBackground(theme) {
   const file = getThemeFile(theme);
+  const preview = document.getElementById('bg-preview');
   if (file) {
     state.settings.bgType = 'image';
     state.settings.bgPath = await window.api.getAssetPath(file);
+    const fileUrl = 'file:///' + state.settings.bgPath.replace(/\\/g, '/');
+    preview.style.backgroundImage = `url('${fileUrl}')`;
+    preview.classList.add('has-bg');
+    preview.textContent = '';
   } else {
     document.getElementById('theme-select').value = '';
+    if (!state.settings.bgPath) {
+      preview.style.backgroundImage = '';
+      preview.classList.remove('has-bg');
+      preview.textContent = '';
+    }
   }
 }
 
