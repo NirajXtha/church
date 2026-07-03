@@ -528,41 +528,86 @@ function setupSearch() {
     let results;
     if (state.dualMode) {
       const r = await window.api.searchVersesDual(keyword);
-      const maxLen = Math.max(r.nepali.length, r.english.length);
-      results = [];
-      for (let i = 0; i < maxLen; i++) {
-        const np = r.nepali[i];
-        const en = r.english[i];
-        if (np && en && np.book === en.book && np.chapter === en.chapter && np.verse === en.verse) {
-          results.push({
-            type: 'verse',
-            text: np.text,
-            textEn: en.text,
-            reference: `${state.lang === 'nepali' ? np.book_nepali : np.book_english} ${np.chapter}:${np.verse}`,
-          });
-        } else if (np) {
-          results.push({
-            type: 'verse',
-            text: np.text,
-            textEn: null,
-            reference: `${state.lang === 'nepali' ? np.book_nepali : np.book_english} ${np.chapter}:${np.verse}`,
-          });
+      const map = new Map();
+      r.nepali.forEach(v => {
+        const key = v.book + '-' + v.chapter + '-' + v.verse;
+        map.set(key, { ...v, textEn: '' });
+      });
+      r.english.forEach(v => {
+        const key = v.book + '-' + v.chapter + '-' + v.verse;
+        const existing = map.get(key);
+        if (existing) {
+          existing.textEn = v.text;
+        } else {
+          map.set(key, { ...v, text: '', textEn: v.text });
         }
-      }
+      });
+      results = Array.from(map.values()).map(v => ({
+        type: 'verse',
+        text: v.text,
+        textEn: v.textEn || null,
+        book: v.book,
+        chapter: v.chapter,
+        verse: v.verse,
+        book_nepali: v.book_nepali,
+        book_english: v.book_english,
+        reference: `${state.lang === 'nepali' ? v.book_nepali : v.book_english} ${v.chapter}:${v.verse}`,
+      }));
     } else {
       const r = await window.api.searchVerses(keyword, state.lang);
       results = r.map(v => ({
         type: 'verse',
         text: v.text,
         textEn: null,
+        book: v.book,
+        chapter: v.chapter,
+        verse: v.verse,
+        book_nepali: v.book_nepali,
+        book_english: v.book_english,
         reference: `${state.lang === 'nepali' ? v.book_nepali : v.book_english} ${v.chapter}:${v.verse}`,
       }));
     }
 
+    // Show results in the browser area
+    const container = document.getElementById('verse-browser');
+    container.innerHTML = '<div class="search-header">Search results for "' + keyword + '" <button id="clear-search-btn" class="btn-small">Clear</button></div>';
+    results.forEach((item, i) => {
+      const el = document.createElement('div');
+      el.className = 'browser-verse';
+      el.dataset.index = i;
+      const preview = (item.text || '').substring(0, 70);
+      const label = item.textEn
+        ? `<span class="verse-num">${i + 1}</span> <span class="verse-np">${preview}</span> <span class="verse-en">${item.textEn.substring(0, 50)}</span>`
+        : `<span class="verse-num">${i + 1}</span> <span class="verse-text">${preview}</span>`;
+      el.innerHTML = label + `<div class="verse-ref">${item.reference}</div>`;
+      el.title = 'Double-click: show in presentation\nCtrl+Click: add to stack';
+      const bookLabel = state.lang === 'nepali' ? item.book_nepali : item.book_english;
+      el.addEventListener('click', (ev) => {
+        if (ev.ctrlKey || ev.metaKey) {
+          ev.preventDefault();
+          toggleStackVerse(item.book, item.chapter, item, bookLabel);
+        }
+      });
+      el.addEventListener('dblclick', () => {
+        state.verseIndex = i;
+        updateDisplay();
+        presentItems(results, false, state.verseIndex);
+        updateOverlayContent();
+      });
+      container.appendChild(el);
+    });
+
     state.singleVerseItems = results;
+    state.chapterVerses = results;
     state.verseIndex = 0;
     updateDisplay();
-    presentItems(results, false, 0);
+
+    document.getElementById('clear-search-btn').addEventListener('click', () => {
+      document.getElementById('bible-search').value = '';
+      if (state.currentChapter) {
+        loadBrowserVerses(state.currentChapter.bookId, state.currentChapter.chapter);
+      }
+    });
   });
 
   document.getElementById('bible-search').addEventListener('keydown', (e) => {
