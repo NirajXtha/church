@@ -1,13 +1,13 @@
 {
   "name": "church-presenter",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Church Presentation Application - Bible verses and song lyrics display",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
     "build:win": "electron-builder --win",
-    "build:portable": "electron-builder --win portable"
+    "build:portable": "electron-builder --win portable --publish never"
   },
   "build": {
     "appId": "church.presenter.app",
@@ -42,6 +42,7 @@
       "releaseType": "release"
     },
     "win": {
+      "artifactName": "${productName}.${ext}",
       "target": [
         {
           "target": "nsis",
