@@ -37,8 +37,8 @@
     ],
     "publish": {
       "provider": "github",
-      "owner": "anomalyco",
-      "repo": "church-presenter",
+      "owner": "NirajXtha",
+      "repo": "church",
       "releaseType": "release"
     },
     "win": {

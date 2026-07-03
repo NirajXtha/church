@@ -22,11 +22,11 @@ jobs:
 
       - run: npm run build:portable
 
-      - name: Generate release tag
+      - name: Read version and generate tag
         id: tag
         run: |
-          $tag = "v1.0.0-$env:GITHUB_RUN_NUMBER"
-          echo "tag=$tag" >> $env:GITHUB_OUTPUT
+          $ver = (Get-Content package.json | ConvertFrom-Json).version
+          echo "tag=v$ver" >> $env:GITHUB_OUTPUT
           echo "date=$(Get-Date -Format yyyy-MM-dd)" >> $env:GITHUB_OUTPUT
 
       - uses: softprops/action-gh-release@v2
