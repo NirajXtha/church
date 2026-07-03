@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Presentation</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+  #bg-container {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 0;
+  }
+  #bg-container img, #bg-container video {
+    width: 100%; height: 100%; object-fit: cover;
+  }
+  #bg-dim-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    z-index: 1;
+  }
+  #content {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 1;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: 60px;
+    color: #fff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    text-align: center;
+    transition: all 0.3s ease;
+  }
+  .verse-item {
+    max-width: 90%;
+    transition: all 0.2s ease;
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .verse-ref {
+    display: block;
+    font-size: 0.45em;
+    opacity: 0.6;
+    margin-top: 8px;
+    font-style: italic;
+  }
+  .song-title-display {
+    font-size: 1em;
+    font-weight: bold;
+    margin-bottom: 20px;
+    opacity: 0.7;
+    letter-spacing: 1px;
+  }
+  .dual-verse {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .dual-np { font-size: 1em; }
+  .dual-en {
+    font-size: 0.8em;
+    opacity: 0.85;
+    font-style: italic;
+    border-top: 1px solid rgba(255,255,255,0.15);
+    padding-top: 10px;
+  }
+  #nav-hint {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    color: rgba(255,255,255,0.25);
+    font-size: 14px;
+    letter-spacing: 2px;
+    transition: opacity 0.5s;
+    pointer-events: none;
+  }
+  #nav-hint.hidden { opacity: 0; }
+  #song-progress {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .progress-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    transition: all 0.3s;
+  }
+  .progress-dot.active { background: rgba(255,255,255,0.8); transform: scale(1.3); }
+  .progress-dot.done { background: rgba(255,255,255,0.4); }
+  #content.song-scroll {
+    justify-content: flex-start;
+    overflow-y: auto;
+    padding: 40px 60px;
+  }
+  #content.song-scroll .verse-item {
+    margin-bottom: 1em;
+  }
+  #content.song-scroll::-webkit-scrollbar { width: 8px; }
+  #content.song-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 4px; }
+
+  #content.stack-mode {
+    overflow-y: auto;
+    padding: 60px;
+  }
+  #content.stack-mode .stack-wrapper {
+    margin: auto;
+    max-width: 90%;
+    width: 100%;
+  }
+</style>
+</head>
+<body>
+<div id="bg-container">
+  <div id="bg-dim-overlay"></div>
+</div>
+<div id="content"></div>
+<div id="nav-hint" class="hidden">SPACE / ENTER &bull; next</div>
+<div id="song-progress" style="display:none"></div>
+<script>
+  let state = {
+    items: [],
+    isSong: false,
+    isStack: false,
+    currentIndex: 0,
+    settings: {
+      fontSize: 48,
+      textColor: '#ffffff',
+      textAlign: 'center',
+      verseSpacing: 24,
+      bgType: null,
+      bgPath: null,
+      bgFit: 'cover',
+      bgDim: 0,
+      textShadow: 'medium',
+      songFormat: 'verses-only',
+    }
+  };
+
+  const bgContainer = document.getElementById('bg-container');
+  const content = document.getElementById('content');
+  const navHint = document.getElementById('nav-hint');
+  const songProgress = document.getElementById('song-progress');
+  let hintTimeout;
+
+  function getShadowStyle(type) {
+    switch(type) {
+      case 'light': return '0 1px 3px rgba(0,0,0,0.5)';
+      case 'medium': return '0 2px 8px rgba(0,0,0,0.7), 0 0 30px rgba(0,0,0,0.3)';
+      case 'heavy': return '0 4px 15px rgba(0,0,0,0.9), 0 0 60px rgba(0,0,0,0.5)';
+      default: return 'none';
+    }
+  }
+
+  function applySettings(settings) {
+    Object.assign(state.settings, settings);
+    content.style.fontSize = state.settings.fontSize + 'px';
+    content.style.color = state.settings.textColor;
+    content.style.textAlign = state.settings.textAlign;
+    content.style.textShadow = getShadowStyle(state.settings.textShadow);
+    applyBgDim();
+    render();
+  }
+
+  const bgDimOverlay = document.getElementById('bg-dim-overlay');
+
+  function applyBgDim() {
+    const dim = (state.settings.bgDim || 0) / 100;
+    bgDimOverlay.style.opacity = dim;
+  }
+
+  function setBackground(type, path, fit) {
+    state.settings.bgType = type;
+    state.settings.bgPath = path;
+    if (fit) state.settings.bgFit = fit;
+    bgContainer.querySelectorAll('img, video').forEach(el => el.remove());
+    if (!path) { bgContainer.style.background = '#000'; applyBgDim(); return; }
+    bgContainer.style.background = '';
+    if (type === 'image') {
+      const img = document.createElement('img');
+      img.src = 'file:///' + path.replace(/\\/g, '/');
+      img.style.objectFit = state.settings.bgFit;
+      bgContainer.insertBefore(img, bgDimOverlay);
+    } else if (type === 'video') {
+      const video = document.createElement('video');
+      video.src = 'file:///' + path.replace(/\\/g, '/');
+      video.autoplay = true;
+      video.loop = true;
+      video.muted = true;
+      video.style.objectFit = state.settings.bgFit;
+      bgContainer.insertBefore(video, bgDimOverlay);
+    }
+    applyBgDim();
+  }
+
+  function showNavHint() {
+    navHint.classList.remove('hidden');
+    clearTimeout(hintTimeout);
+    hintTimeout = setTimeout(() => navHint.classList.add('hidden'), 3000);
+  }
+
+  function renderProgress() {
+    if (state.isStack) { songProgress.style.display = 'none'; return; }
+    if (state.items.length > 1) {
+      songProgress.style.display = 'flex';
+      songProgress.innerHTML = '';
+      state.items.forEach((_, i) => {
+        const dot = document.createElement('div');
+        dot.className = 'progress-dot';
+        if (i === state.currentIndex) dot.classList.add('active');
+        else if (i < state.currentIndex) dot.classList.add('done');
+        songProgress.appendChild(dot);
+      });
+    } else {
+      songProgress.style.display = 'none';
+    }
+  }
+
+  function render() {
+    content.innerHTML = '';
+    content.className = '';
+
+    if (!state.items || state.items.length === 0) {
+      navHint.classList.add('hidden');
+      songProgress.style.display = 'none';
+      return;
+    }
+
+    state.isSong = state.items[0] && state.items[0].type === 'song';
+
+    const total = state.items.length;
+    if (state.currentIndex >= total) state.currentIndex = total - 1;
+    if (state.currentIndex < 0) state.currentIndex = 0;
+
+    const stackMode = state.isStack;
+    const scrolling = (state.isSong && state.settings.songFormat === 'scroll') || stackMode;
+
+    if (stackMode) {
+      content.classList.add('stack-mode');
+      const wrapper = document.createElement('div');
+      wrapper.className = 'stack-wrapper';
+      state.items.forEach((it, i) => {
+        const el = document.createElement('div');
+        el.className = 'verse-item';
+        el.style.marginBottom = (i < state.items.length - 1) ? state.settings.verseSpacing + 'px' : '0';
+        if (it.type === 'verse') {
+          if (it.textEn) {
+            const dualDiv = document.createElement('div');
+            dualDiv.className = 'dual-verse';
+            const npDiv = document.createElement('div');
+            npDiv.className = 'dual-np';
+            npDiv.textContent = it.text;
+            const enDiv = document.createElement('div');
+            enDiv.className = 'dual-en';
+            enDiv.textContent = it.textEn;
+            dualDiv.appendChild(npDiv);
+            dualDiv.appendChild(enDiv);
+            el.appendChild(dualDiv);
+          } else {
+            const textEl = document.createElement('div');
+            textEl.textContent = it.text;
+            el.appendChild(textEl);
+          }
+          if (it.reference) {
+            const refEl = document.createElement('span');
+            refEl.className = 'verse-ref';
+            refEl.textContent = it.reference;
+            el.appendChild(refEl);
+          }
+        } else {
+          const p = document.createElement('div');
+          p.innerHTML = it.text.split('\n').map(l => l.trim() === '' ? '<br>' : l).join('\n');
+          el.appendChild(p);
+        }
+        wrapper.appendChild(el);
+      });
+      content.appendChild(wrapper);
+      wrapper.scrollIntoView({ block: 'center' });
+      navHint.classList.add('hidden');
+    } else if (scrolling) {
+      content.classList.add('song-scroll');
+      state.items.forEach((it, i) => {
+        const el = document.createElement('div');
+        el.className = 'verse-item';
+        el.style.marginBottom = (i < state.items.length - 1) ? state.settings.verseSpacing + 'px' : '0';
+        const p = document.createElement('div');
+        p.innerHTML = it.text.split('\n').map(l => l.trim() === '' ? '<br>' : l).join('\n');
+        el.appendChild(p);
+        content.appendChild(el);
+      });
+      content.scrollTop = 0;
+      navHint.classList.add('hidden');
+    } else {
+      const item = state.items[state.currentIndex];
+
+      if (state.isSong && state.settings.songFormat === 'with-title' && state.currentIndex === 0) {
+        const titleEl = document.createElement('div');
+        titleEl.className = 'song-title-display';
+        titleEl.textContent = item.title;
+        content.appendChild(titleEl);
+      }
+
+      const el = document.createElement('div');
+      el.className = 'verse-item';
+
+      if (item.type === 'verse') {
+        if (item.textEn) {
+          const dualDiv = document.createElement('div');
+          dualDiv.className = 'dual-verse';
+          const npDiv = document.createElement('div');
+          npDiv.className = 'dual-np';
+          npDiv.textContent = item.text;
+          const enDiv = document.createElement('div');
+          enDiv.className = 'dual-en';
+          enDiv.textContent = item.textEn;
+          dualDiv.appendChild(npDiv);
+          dualDiv.appendChild(enDiv);
+          el.appendChild(dualDiv);
+        } else {
+          const textEl = document.createElement('div');
+          textEl.textContent = item.text;
+          el.appendChild(textEl);
+        }
+        if (item.reference) {
+          const refEl = document.createElement('span');
+          refEl.className = 'verse-ref';
+          refEl.textContent = item.reference;
+          el.appendChild(refEl);
+        }
+      } else {
+        const p = document.createElement('div');
+        p.innerHTML = item.text.split('\n').map(l => l.trim() === '' ? '<br>' : l).join('\n');
+        el.appendChild(p);
+      }
+
+      content.appendChild(el);
+
+      if (total > 1) showNavHint();
+    }
+    renderProgress();
+  }
+
+  function navigateItem(direction) {
+    if (state.items.length < 2) return;
+    const newIndex = state.currentIndex + direction;
+    if (newIndex < 0 || newIndex >= state.items.length) return;
+    state.currentIndex = newIndex;
+    render();
+  }
+
+  function displayContent(data) {
+    state.items = data.items || [];
+    state.isSong = data.songActive || (state.items[0] && state.items[0].type === 'song');
+    state.isStack = data.isStack || false;
+    state.currentIndex = (data.verseIndex !== undefined) ? data.verseIndex : 0;
+    if (data.settings) applySettings(data.settings);
+    if (data.bgType !== undefined) setBackground(data.bgType, data.bgPath, data.bgFit);
+    render();
+  }
+
+  function updateSettings(settings) {
+    applySettings(settings);
+  }
+
+  window.api.onDisplayContentPres((data) => displayContent(data));
+  window.api.onUpdateSettingsPres((data) => updateSettings(data));
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      window.api.closePresentationPres();
+      return;
+    }
+    if (e.key === ' ' || e.key === 'Space' || e.key === 'Enter') {
+      e.preventDefault();
+      navigateItem(1);
+      return;
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'Backspace') {
+      e.preventDefault();
+      navigateItem(-1);
+      return;
+    }
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      navigateItem(1);
+      return;
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+{
+  "name": "church-presenter",
+  "version": "1.0.0",
+  "description": "Church Presentation Application - Bible verses and song lyrics display",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:portable": "electron-builder --win portable"
+  },
+  "build": {
+    "appId": "church.presenter.app",
+    "productName": "Church Presenter",
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "db.js",
+      "renderer/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "bible.sqlite",
+        "to": "bible.sqlite"
+      },
+      {
+        "from": "assets",
+        "to": "assets"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": null
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  },
+  "keywords": [
+    "church",
+    "presentation",
+    "bible",
+    "song",
+    "lyrics"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^12.11.1"
+  },
+  "devDependencies": {
+    "electron": "^43.0.0",
+    "electron-builder": "^26.15.3",
+    "electron-packager": "^17.1.2"
+  }
+}
