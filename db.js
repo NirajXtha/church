@@ -1,15 +1,20 @@
 const Database = require('better-sqlite3');
 const path = require('path');
+const fs = require('fs');
 const { app } = require('electron');
 
 let db;
 
 function getDB() {
   if (!db) {
-    const dbPath = app.isPackaged
-      ? path.join(process.resourcesPath, 'bible.sqlite')
-      : path.join(__dirname, 'bible.sqlite');
-    db = new Database(dbPath);
+    const userDataPath = path.join(app.getPath('userData'), 'bible.sqlite');
+    if (!fs.existsSync(userDataPath)) {
+      const bundledPath = app.isPackaged
+        ? path.join(process.resourcesPath, 'bible.sqlite')
+        : path.join(__dirname, 'bible.sqlite');
+      fs.copyFileSync(bundledPath, userDataPath);
+    }
+    db = new Database(userDataPath);
     db.pragma('journal_mode = WAL');
   }
   return db;

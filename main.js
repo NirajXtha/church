@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
+const { autoUpdater } = require('electron-updater');
 const db = require('./db');
 
 let mainWin;
@@ -187,9 +188,52 @@ function setupIPC() {
   });
 }
 
+function setupAutoUpdater() {
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = false;
+
+  autoUpdater.on('checking-for-update', () => {
+    if (mainWin && !mainWin.isDestroyed())
+      mainWin.webContents.send('update-status', { status: 'checking' });
+  });
+
+  autoUpdater.on('update-available', (info) => {
+    if (mainWin && !mainWin.isDestroyed())
+      mainWin.webContents.send('update-status', { status: 'available', info });
+  });
+
+  autoUpdater.on('download-progress', (progress) => {
+    if (mainWin && !mainWin.isDestroyed())
+      mainWin.webContents.send('update-status', { status: 'downloading', progress });
+  });
+
+  autoUpdater.on('update-downloaded', () => {
+    if (mainWin && !mainWin.isDestroyed())
+      mainWin.webContents.send('update-status', { status: 'downloaded' });
+  });
+
+  autoUpdater.on('error', (err) => {
+    if (mainWin && !mainWin.isDestroyed())
+      mainWin.webContents.send('update-status', { status: 'error', message: err.message });
+  });
+
+  autoUpdater.checkForUpdates().catch(() => {});
+}
+
 app.whenReady().then(() => {
   setupIPC();
   createWindow();
+  setupAutoUpdater();
+});
+
+ipcMain.handle('start-update-download', () => {
+  autoUpdater.downloadUpdate().catch(() => {});
+  return true;
+});
+
+ipcMain.handle('install-update', () => {
+  autoUpdater.quitAndInstall(false, true);
+  return true;
 });
 
 app.on('window-all-closed', () => {

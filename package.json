@@ -1,6 +1,6 @@
 {
   "name": "church-presenter",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Church Presentation Application - Bible verses and song lyrics display",
   "main": "main.js",
   "scripts": {
@@ -35,6 +35,12 @@
         "to": "assets"
       }
     ],
+    "publish": {
+      "provider": "github",
+      "owner": "anomalyco",
+      "repo": "church-presenter",
+      "releaseType": "release"
+    },
     "win": {
       "target": [
         {
@@ -65,7 +71,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "better-sqlite3": "^12.11.1"
+    "better-sqlite3": "^12.11.1",
+    "electron-updater": "^6.3.0"
   },
   "devDependencies": {
     "electron": "^43.0.0",

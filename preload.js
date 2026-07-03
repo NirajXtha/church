@@ -40,4 +40,9 @@ contextBridge.exposeInMainWorld('api', {
   updateOverlay: (data) => ipcRenderer.invoke('update-overlay', data),
   setOverlayPosition: (pos) => ipcRenderer.invoke('set-overlay-position', pos),
   onOverlayUpdate: (callback) => ipcRenderer.on('overlay-update', (_, data) => callback(data)),
+
+  // Auto-update
+  onUpdateStatus: (callback) => ipcRenderer.on('update-status', (_, data) => callback(data)),
+  startUpdateDownload: () => ipcRenderer.invoke('start-update-download'),
+  installUpdate: () => ipcRenderer.invoke('install-update'),
 });

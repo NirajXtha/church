@@ -36,6 +36,30 @@ body {
   flex-shrink: 0;
 }
 
+.update-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 6px 16px;
+  font-size: 13px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+.update-bar.hidden { display: none; }
+.update-btn {
+  padding: 3px 14px;
+  font-size: 12px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.update-btn:hover { opacity: 0.85; }
+.update-btn.hidden { display: none; }
+
 .sidebar-header {
   padding: 16px 20px;
   background: var(--bg-tertiary);
