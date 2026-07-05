@@ -1044,6 +1044,22 @@ function setupSongControls() {
   });
 }
 
+async function openSongEditModal(id) {
+  if (!id) return;
+  const modal = document.getElementById("song-modal");
+  const deleteBtn = document.getElementById("song-delete-btn");
+  const data = await window.api.getSongLyrics(id);
+  document.getElementById("song-title").value = data.title;
+  document.getElementById("song-lyrics").value = data.lyrics;
+  document.getElementById("song-category").value = data.category || "";
+  document.getElementById("song-language").value = data.language || "";
+  document.getElementById("song-author").value = data.author || "";
+  document.getElementById("song-tags").value = data.tags || "";
+  deleteBtn.classList.remove("hidden");
+  document.getElementById("song-delete-btn").dataset.id = id;
+  modal.classList.remove("hidden");
+}
+
 function setupModal() {
   const modal = document.getElementById("song-modal");
   const openBtn = document.getElementById("new-song-btn");
@@ -1083,20 +1099,6 @@ function setupModal() {
     songs = await window.api.getAllSongs();
     renderSongList();
   });
-
-  async function openSongEditModal(id) {
-    if (!id) return;
-    const data = await window.api.getSongLyrics(id);
-    document.getElementById("song-title").value = data.title;
-    document.getElementById("song-lyrics").value = data.lyrics;
-    document.getElementById("song-category").value = data.category || "";
-    document.getElementById("song-language").value = data.language || "";
-    document.getElementById("song-author").value = data.author || "";
-    document.getElementById("song-tags").value = data.tags || "";
-    deleteBtn.classList.remove("hidden");
-    document.getElementById("song-delete-btn").dataset.id = id;
-    modal.classList.remove("hidden");
-  }
 
   deleteBtn.addEventListener("click", async () => {
     if (confirm("Delete this song?")) {

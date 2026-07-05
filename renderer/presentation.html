@@ -62,6 +62,8 @@
       }
       .verse-item {
         max-width: 90%;
+        white-space: pre-wrap;
+        word-break: break-word;
         transition: all 0.2s ease;
         animation: fadeIn 0.3s ease;
       }
@@ -168,6 +170,7 @@
         margin: auto;
         max-width: 90%;
         width: 100%;
+        padding-bottom: 80px;
       }
     </style>
   </head>
@@ -347,8 +350,8 @@
               const p = document.createElement("div");
               p.innerHTML = it.text
                 .split("\n")
-                .map((l) => (l.trim() === "" ? "<br>" : l))
-                .join("\n");
+                .map((l) => (l.trim() === "" ? "" : l))
+                .join("<br>");
               el.appendChild(p);
             }
             wrapper.appendChild(el);
@@ -368,8 +371,8 @@
             const p = document.createElement("div");
             p.innerHTML = it.text
               .split("\n")
-              .map((l) => (l.trim() === "" ? "<br>" : l))
-              .join("\n");
+              .map((l) => (l.trim() === "" ? "" : l))
+              .join("<br>");
             el.appendChild(p);
             content.appendChild(el);
           });
