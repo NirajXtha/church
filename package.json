@@ -5,9 +5,9 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder",
-    "build:win": "electron-builder --win",
-    "build:portable": "electron-builder --win portable --publish never"
+    "build": "npx electron-builder",
+    "build:win": "npx electron-builder --win",
+    "build:portable": "npx electron-builder --win portable --publish never"
   },
   "build": {
     "appId": "church.presenter.app",
