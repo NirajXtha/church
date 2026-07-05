@@ -52,24 +52,24 @@
         }
       ],
       "icon": "assets/logo.png"
-    },
-    "keywords": [
-      "church",
-      "presentation",
-      "bible",
-      "song",
-      "lyrics"
-    ],
-    "author": "",
-    "license": "ISC",
-    "dependencies": {
-      "better-sqlite3": "^12.11.1",
-      "electron-updater": "^6.3.0"
-    },
-    "devDependencies": {
-      "electron": "^43.0.0",
-      "electron-builder": "^26.15.3",
-      "electron-packager": "^17.1.2"
     }
+  },
+  "keywords": [
+    "church",
+    "presentation",
+    "bible",
+    "song",
+    "lyrics"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^12.11.1",
+    "electron-updater": "^6.3.0"
+  },
+  "devDependencies": {
+    "electron": "^43.0.0",
+    "electron-builder": "^26.15.3",
+    "electron-packager": "^17.1.2"
   }
 }

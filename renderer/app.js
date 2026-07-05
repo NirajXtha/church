@@ -383,8 +383,12 @@ function showSingleVerse(bookId, chapter, verse, bookLabel) {
   state.singleVerseItems = items;
 
   updateDisplay();
-  presentItems(items, false, state.verseIndex);
-  updateOverlayContent();
+  if (state.settings.overlayEnabled) {
+    updateOverlayContent();
+  } else {
+    presentItems(items, false, state.verseIndex);
+    updateOverlayContent();
+  }
 }
 
 function updateDisplay() {
@@ -588,8 +592,12 @@ function navigateChapter(direction) {
   if (newIdx < 0 || newIdx >= state.singleVerseItems.length) return;
   state.verseIndex = newIdx;
   updateDisplay();
-  presentItems(state.singleVerseItems, false, state.verseIndex);
-  updateOverlayContent();
+  if (state.settings.overlayEnabled) {
+    updateOverlayContent();
+  } else {
+    presentItems(state.singleVerseItems, false, state.verseIndex);
+    updateOverlayContent();
+  }
 }
 
 function navigateSong(direction) {
@@ -598,8 +606,12 @@ function navigateSong(direction) {
   if (newIdx < 0 || newIdx >= state.songItems.length) return;
   state.verseIndex = newIdx;
   updateDisplay();
-  presentItems(state.songItems, true, state.verseIndex);
-  updateOverlayContent();
+  if (state.settings.overlayEnabled) {
+    updateOverlayContent();
+  } else {
+    presentItems(state.songItems, true, state.verseIndex);
+    updateOverlayContent();
+  }
 }
 
 async function presentItems(items, isSong, startIndex, isStack) {

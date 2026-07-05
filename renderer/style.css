@@ -430,6 +430,13 @@ body {
 .form-group {
   margin-bottom: 12px;
 }
+.setting-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  line-height: 1.4;
+  opacity: 0.85;
+}
 
 .form-group label {
   display: block;

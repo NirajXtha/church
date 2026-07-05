@@ -176,8 +176,16 @@ function setupIPC() {
       overlayWin.focus();
       return true;
     }
+    const { screen } = require("electron");
+    const displays = screen.getAllDisplays();
+    const extDisplay = displays.find(
+      (d) => d.bounds.x !== 0 || d.bounds.y !== 0,
+    );
+    const bounds = extDisplay ? extDisplay.bounds : screen.getPrimaryDisplay().bounds;
     overlayWin = new BrowserWindow({
-      width: 600,
+      x: bounds.x,
+      y: bounds.y,
+      width: bounds.width,
       height: 100,
       alwaysOnTop: true,
       frame: false,
@@ -214,18 +222,19 @@ function setupIPC() {
   ipcMain.handle("set-overlay-position", (_, pos) => {
     if (overlayWin && !overlayWin.isDestroyed()) {
       const { screen } = require("electron");
-      const primary = screen.getPrimaryDisplay();
-      const { width: sw, height: sh } = primary.workAreaSize;
-      const w = 600,
-        h = 100;
-      let x = Math.round((sw - w) / 2);
+      const displays = screen.getAllDisplays();
+      const extDisplay = displays.find(
+        (d) => d.bounds.x !== 0 || d.bounds.y !== 0,
+      );
+      const display = extDisplay || screen.getPrimaryDisplay();
+      const { width: sw, height: sh } = display.workArea;
+      const w = display.bounds.width, h = 100;
+      let x = display.bounds.x;
       let y;
-      if (pos === "top") y = 0;
-      else if (pos === "bottom") y = sh - h;
-      else y = Math.round((sh - h) / 2);
+      if (pos === "top") y = display.bounds.y;
+      else if (pos === "bottom") y = display.bounds.y + sh - h;
+      else y = display.bounds.y + Math.round((sh - h) / 2);
       overlayWin.setBounds({ x, y, width: w, height: h });
-      if (overlayWin.webContents)
-        overlayWin.webContents.send("overlay-update", { position: pos });
     }
     return true;
   });
