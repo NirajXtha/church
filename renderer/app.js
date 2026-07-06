@@ -16,6 +16,7 @@ let state = {
     verseSpacing: 24,
     bgType: null,
     bgPath: null,
+    bgPaths: [],
     bgFit: "cover",
     textShadow: "medium",
     songFormat: "verses-only",
@@ -675,9 +676,19 @@ function navigateSong(direction) {
   }
 }
 
+function pickRandomUserBg() {
+  if (state.settings.bgPaths && state.settings.bgPaths.length > 1) {
+    const path = state.settings.bgPaths[Math.floor(Math.random() * state.settings.bgPaths.length)];
+    state.settings.bgPath = path;
+    state.settings.bgType = "image";
+  }
+}
+
 async function presentItems(items, isSong, startIndex, isStack) {
   if (state.settings.theme === "random") {
     await applyThemeBackground("random");
+  } else if (!state.settings.theme && state.settings.bgPaths.length > 1) {
+    pickRandomUserBg();
   }
   const pState = await window.api.getPresentationState();
   const data = {
@@ -685,6 +696,7 @@ async function presentItems(items, isSong, startIndex, isStack) {
     settings: { ...state.settings },
     bgType: state.settings.bgType,
     bgPath: state.settings.bgPath,
+    bgPaths: state.settings.bgPaths,
     bgFit: state.settings.bgFit,
     isSong: isSong || false,
     songActive: state.songActive || false,
@@ -926,17 +938,18 @@ function setupSettings() {
   document
     .getElementById("select-image-btn")
     .addEventListener("click", async () => {
-      const path = await window.api.selectFile("image");
-      if (path) {
+      const paths = await window.api.selectFile("image");
+      if (paths && paths.length > 0) {
         state.settings.theme = "";
         document.getElementById("theme-select").value = "";
         state.settings.bgType = "image";
-        state.settings.bgPath = path;
-        const fileUrl = "file:///" + path.replace(/\\/g, "/");
-        document.getElementById("bg-preview").style.backgroundImage =
-          `url('${fileUrl}')`;
-        document.getElementById("bg-preview").classList.add("has-bg");
-        document.getElementById("bg-preview").textContent = "";
+        state.settings.bgPaths = paths;
+        state.settings.bgPath = paths[Math.floor(Math.random() * paths.length)];
+        const fileUrl = "file:///" + state.settings.bgPath.replace(/\\/g, "/");
+        const preview = document.getElementById("bg-preview");
+        preview.style.backgroundImage = `url('${fileUrl}')`;
+        preview.classList.add("has-bg");
+        preview.textContent = paths.length > 1 ? paths.length + " images" : "";
         resendToPresentation();
       }
     });
@@ -961,6 +974,7 @@ function setupSettings() {
     state.settings.theme = "";
     state.settings.bgType = null;
     state.settings.bgPath = null;
+    state.settings.bgPaths = [];
     document.getElementById("theme-select").value = "";
     document.getElementById("bg-preview").style.backgroundImage = "";
     document.getElementById("bg-preview").classList.remove("has-bg");

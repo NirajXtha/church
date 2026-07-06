@@ -1,6 +1,6 @@
 {
   "name": "church-presenter",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Church Presentation Application - Bible verses and song lyrics display",
   "main": "main.js",
   "scripts": {

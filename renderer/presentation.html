@@ -194,6 +194,7 @@
           verseSpacing: 24,
           bgType: null,
           bgPath: null,
+          bgPaths: [],
           bgFit: "cover",
           bgDim: 0,
           textShadow: "medium",
@@ -237,9 +238,10 @@
         bgDimOverlay.style.opacity = dim;
       }
 
-      function setBackground(type, path, fit) {
+      function setBackground(type, path, fit, paths) {
         state.settings.bgType = type;
         state.settings.bgPath = path;
+        state.settings.bgPaths = paths || [];
         if (fit) state.settings.bgFit = fit;
         bgContainer.querySelectorAll("img, video").forEach((el) => el.remove());
         if (!path) {
@@ -443,6 +445,9 @@
         if (state.settings.theme === "random") {
           const newPath = await window.api.getRandomThemePath();
           setBackground("image", newPath, state.settings.bgFit);
+        } else if (state.settings.bgPaths.length > 1) {
+          const path = state.settings.bgPaths[Math.floor(Math.random() * state.settings.bgPaths.length)];
+          setBackground("image", path, state.settings.bgFit, state.settings.bgPaths);
         }
         render();
       }
@@ -456,7 +461,7 @@
           data.verseIndex !== undefined ? data.verseIndex : 0;
         if (data.settings) applySettings(data.settings);
         if (data.bgType !== undefined)
-          setBackground(data.bgType, data.bgPath, data.bgFit);
+          setBackground(data.bgType, data.bgPath, data.bgFit, data.bgPaths);
         render();
       }
 

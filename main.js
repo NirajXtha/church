@@ -137,23 +137,23 @@ function setupIPC() {
   });
 
   ipcMain.handle("select-file", async (_, type) => {
-    const filters =
-      type === "video"
-        ? [{ name: "Videos", extensions: ["mp4", "webm", "avi", "mov", "mkv"] }]
-        : [
-            {
-              name: "Images",
-              extensions: ["jpg", "jpeg", "png", "gif", "bmp", "webp"],
-            },
-          ];
+    const isVideo = type === "video";
+    const filters = isVideo
+      ? [{ name: "Videos", extensions: ["mp4", "webm", "avi", "mov", "mkv"] }]
+      : [
+          {
+            name: "Images",
+            extensions: ["jpg", "jpeg", "png", "gif", "bmp", "webp"],
+          },
+        ];
     const result = await dialog.showOpenDialog(mainWin, {
-      properties: ["openFile"],
+      properties: isVideo ? ["openFile"] : ["openFile", "multiSelections"],
       filters,
     });
     if (!result.canceled && result.filePaths.length > 0) {
-      return result.filePaths[0];
+      return isVideo ? result.filePaths[0] : result.filePaths;
     }
-    return null;
+    return isVideo ? null : [];
   });
 
   ipcMain.handle("get-asset-path", (_, filename) => {
