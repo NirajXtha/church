@@ -23,9 +23,11 @@ jobs:
       - run: npm run build:portable
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Read version and generate tag
         id: tag
+        shell: pwsh
         run: |
           $ver = (Get-Content package.json | ConvertFrom-Json).version
           echo "tag=v$ver" >> $env:GITHUB_OUTPUT
@@ -36,5 +38,9 @@ jobs:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: Church Presenter ${{ steps.tag.outputs.date }}
           body: Auto-built from commit ${{ github.sha }}
-          files: dist/*
+          files: |
+            dist/Church-Presenter.exe
+            dist/Setup.exe
+            dist/Setup.exe.blockmap
+            dist/latest.yml
           generate_release_notes: true
