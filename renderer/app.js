@@ -80,6 +80,10 @@ function setupAutoUpdateUI() {
         btn.classList.remove('hidden');
         btn.onclick = () => window.api.installUpdate();
         break;
+      case 'up-to-date':
+        text.textContent = 'You are up to date!';
+        setTimeout(() => bar.classList.add('hidden'), 3000);
+        break;
       case 'error':
         text.textContent = 'Update check failed: ' + (data.message || 'unknown error') + ' — click to retry';
         btn.textContent = 'Retry';
@@ -90,8 +94,6 @@ function setupAutoUpdateUI() {
         };
         break;
     }
-  });
-}
   });
 }
 

@@ -263,14 +263,35 @@ function setupIPC() {
 }
 
 function doCheckForUpdates() {
-  autoUpdater.checkForUpdates().catch((err) => {
-    console.error("[AutoUpdater] checkForUpdates failed:", err);
-    if (mainWin && !mainWin.isDestroyed())
-      mainWin.webContents.send("update-status", {
-        status: "error",
-        message: err.message || "check failed",
-      });
-  });
+  const TIMEOUT_MS = 10000;
+  let settled = false;
+
+  const timeout = setTimeout(() => {
+    if (!settled) {
+      settled = true;
+      console.error("[AutoUpdater] checkForUpdates timed out");
+      if (mainWin && !mainWin.isDestroyed())
+        mainWin.webContents.send("update-status", {
+          status: "error",
+          message: "Update check timed out (no internet?)",
+        });
+    }
+  }, TIMEOUT_MS);
+
+  autoUpdater.checkForUpdates().then(
+    () => { settled = true; clearTimeout(timeout); },
+    (err) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      console.error("[AutoUpdater] checkForUpdates failed:", err);
+      if (mainWin && !mainWin.isDestroyed())
+        mainWin.webContents.send("update-status", {
+          status: "error",
+          message: err.message || "check failed",
+        });
+    },
+  );
 }
 
 function setupAutoUpdater() {
@@ -285,6 +306,11 @@ function setupAutoUpdater() {
   autoUpdater.on("update-available", (info) => {
     if (mainWin && !mainWin.isDestroyed())
       mainWin.webContents.send("update-status", { status: "available", info });
+  });
+
+  autoUpdater.on("update-not-available", () => {
+    if (mainWin && !mainWin.isDestroyed())
+      mainWin.webContents.send("update-status", { status: "up-to-date" });
   });
 
   autoUpdater.on("download-progress", (progress) => {
