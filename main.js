@@ -164,6 +164,20 @@ function setupIPC() {
     return path.join(base, filename);
   });
 
+  const THEME_FILES = [
+    "Christmas.jpg", "book-ring.jpg", "book.jpg", "candle.png",
+    "cross-sky.jpg", "cross.jpg", "dark.jpg", "flowers.jpg",
+    "man-standing.jpg", "ribbon.jpg", "rose.jpg", "sunset-cross.jpg",
+  ];
+
+  ipcMain.handle("get-random-theme-path", () => {
+    const file = THEME_FILES[Math.floor(Math.random() * THEME_FILES.length)];
+    const base = app.isPackaged
+      ? path.join(process.resourcesPath, "assets")
+      : path.join(__dirname, "assets");
+    return path.join(base, file);
+  });
+
   ipcMain.handle("get-presentation-state", () => {
     return {
       isOpen: presentationWin && !presentationWin.isDestroyed(),

@@ -435,11 +435,15 @@
         renderProgress();
       }
 
-      function navigateItem(direction) {
+      async function navigateItem(direction) {
         if (state.items.length < 2) return;
         const newIndex = state.currentIndex + direction;
         if (newIndex < 0 || newIndex >= state.items.length) return;
         state.currentIndex = newIndex;
+        if (state.settings.theme === "random") {
+          const newPath = await window.api.getRandomThemePath();
+          setBackground("image", newPath, state.settings.bgFit);
+        }
         render();
       }
 

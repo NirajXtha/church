@@ -46,6 +46,7 @@ contextBridge.exposeInMainWorld("api", {
   deleteSong: (id) => ipcRenderer.invoke("delete-song", id),
   getBookNames: () => ipcRenderer.invoke("get-book-names"),
   getAssetPath: (filename) => ipcRenderer.invoke("get-asset-path", filename),
+  getRandomThemePath: () => ipcRenderer.invoke("get-random-theme-path"),
 
   openPresentation: () => ipcRenderer.invoke("open-presentation"),
   closePresentation: () => ipcRenderer.invoke("close-presentation"),
