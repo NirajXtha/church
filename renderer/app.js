@@ -49,39 +49,49 @@ function init() {
 }
 
 function setupAutoUpdateUI() {
-  const bar = document.getElementById("update-bar");
-  const text = document.getElementById("update-bar-text");
-  const btn = document.getElementById("update-bar-btn");
+  const bar = document.getElementById('update-bar');
+  const text = document.getElementById('update-bar-text');
+  const btn = document.getElementById('update-bar-btn');
+
+  bar.classList.remove('hidden');
+  text.textContent = 'Checking for updates...';
+  btn.classList.add('hidden');
 
   window.api.onUpdateStatus((data) => {
-    bar.classList.remove("hidden");
-    btn.classList.add("hidden");
+    bar.classList.remove('hidden');
+    btn.classList.add('hidden');
     switch (data.status) {
-      case "checking":
-        text.textContent = "Checking for updates...";
+      case 'checking':
+        text.textContent = 'Checking for updates...';
         break;
-      case "available":
-        text.textContent = "Update v" + data.info.version + " available";
-        btn.textContent = "Download";
-        btn.classList.remove("hidden");
+      case 'available':
+        text.textContent = 'Update v' + data.info.version + ' available';
+        btn.textContent = 'Download';
+        btn.classList.remove('hidden');
         btn.onclick = () => window.api.startUpdateDownload();
         break;
-      case "downloading":
+      case 'downloading':
         const pct = Math.round(data.progress.percent);
-        text.textContent = "Downloading update... " + pct + "%";
+        text.textContent = 'Downloading update... ' + pct + '%';
         break;
-      case "downloaded":
-        text.textContent = "Update downloaded — restart to install";
-        btn.textContent = "Restart & Install";
-        btn.classList.remove("hidden");
+      case 'downloaded':
+        text.textContent = 'Update downloaded — restart to install';
+        btn.textContent = 'Restart & Install';
+        btn.classList.remove('hidden');
         btn.onclick = () => window.api.installUpdate();
         break;
-      case "error":
-        text.textContent =
-          "Update check failed: " + (data.message || "unknown error");
-        setTimeout(() => bar.classList.add("hidden"), 6000);
+      case 'error':
+        text.textContent = 'Update check failed: ' + (data.message || 'unknown error') + ' — click to retry';
+        btn.textContent = 'Retry';
+        btn.classList.remove('hidden');
+        btn.onclick = () => {
+          bar.classList.add('hidden');
+          window.api.checkForUpdates();
+        };
         break;
     }
+  });
+}
   });
 }
 

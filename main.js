@@ -238,6 +238,39 @@ function setupIPC() {
     }
     return true;
   });
+
+  ipcMain.handle("check-for-updates", () => {
+    doCheckForUpdates();
+    return true;
+  });
+
+  ipcMain.handle("start-update-download", () => {
+    autoUpdater.downloadUpdate().catch((err) => {
+      console.error("[AutoUpdater] downloadUpdate failed:", err);
+      if (mainWin && !mainWin.isDestroyed())
+        mainWin.webContents.send("update-status", {
+          status: "error",
+          message: err.message || "download failed",
+        });
+    });
+    return true;
+  });
+
+  ipcMain.handle("install-update", () => {
+    autoUpdater.quitAndInstall(false, true);
+    return true;
+  });
+}
+
+function doCheckForUpdates() {
+  autoUpdater.checkForUpdates().catch((err) => {
+    console.error("[AutoUpdater] checkForUpdates failed:", err);
+    if (mainWin && !mainWin.isDestroyed())
+      mainWin.webContents.send("update-status", {
+        status: "error",
+        message: err.message || "check failed",
+      });
+  });
 }
 
 function setupAutoUpdater() {
@@ -271,27 +304,17 @@ function setupAutoUpdater() {
     if (mainWin && !mainWin.isDestroyed())
       mainWin.webContents.send("update-status", {
         status: "error",
-        message: err.message,
+        message: err ? err.message : "unknown error",
       });
   });
 
-  autoUpdater.checkForUpdates().catch(() => {});
+  doCheckForUpdates();
 }
 
 app.whenReady().then(() => {
   setupIPC();
   createWindow();
   setupAutoUpdater();
-});
-
-ipcMain.handle("start-update-download", () => {
-  autoUpdater.downloadUpdate().catch(() => {});
-  return true;
-});
-
-ipcMain.handle("install-update", () => {
-  autoUpdater.quitAndInstall(false, true);
-  return true;
 });
 
 app.on("window-all-closed", () => {
