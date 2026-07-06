@@ -7,7 +7,8 @@
     "start": "electron .",
     "build": "npx electron-builder",
     "build:win": "npx electron-builder --win",
-    "build:portable": "npx electron-builder --win portable"
+    "build:portable": "npx electron-builder --win --x64",
+    "build:dist": "npx electron-builder --win --x64"
   },
   "build": {
     "appId": "church.presenter.app",
@@ -39,7 +40,6 @@
         "to": "app-update.yml"
       }
     ],
-    "generateUpdatesFilesForAll": true,
     "publish": {
       "provider": "github",
       "owner": "NirajXtha",
@@ -47,16 +47,23 @@
       "releaseType": "release"
     },
     "win": {
-      "artifactName": "${productName}.${ext}",
+      "artifactName": "Church-Presenter.${ext}",
       "target": [
         {
           "target": "portable",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
+        },
+        {
+          "target": "nsis",
+          "arch": ["x64"]
         }
       ],
       "icon": "assets/logo.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Church-Presenter-Setup.${ext}"
     }
   },
   "keywords": [
