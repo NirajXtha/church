@@ -1,13 +1,13 @@
 {
   "name": "church-presenter",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Church Presentation Application - Bible verses and song lyrics display",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "build": "npx electron-builder",
     "build:win": "npx electron-builder --win",
-    "build:portable": "npx electron-builder --win portable --publish never"
+    "build:portable": "npx electron-builder --win portable"
   },
   "build": {
     "appId": "church.presenter.app",
@@ -39,6 +39,7 @@
         "to": "app-update.yml"
       }
     ],
+    "generateUpdatesFilesForAll": true,
     "publish": {
       "provider": "github",
       "owner": "NirajXtha",
