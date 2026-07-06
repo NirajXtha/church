@@ -26,6 +26,7 @@ let state = {
     overlayFontSize: 20,
   },
   currentSongId: null,
+  overlayVerse: null,
 };
 
 let books = [];
@@ -169,6 +170,7 @@ function setupBibleBrowser() {
       bookName: bk,
       chapter: parseInt(e.target.value),
     };
+    clearOverlaySelection();
     loadBrowserVerses(bookId, parseInt(e.target.value));
   });
 
@@ -363,11 +365,19 @@ async function loadBrowserVerses(bookId, chapter) {
       if (ev.ctrlKey || ev.metaKey) {
         ev.preventDefault();
         toggleStackVerse(bookId, chapter, v, bookLabel);
+        return;
+      }
+      if (state.settings.overlayEnabled) {
+        selectVerseForOverlay(bookId, chapter, v, bookLabel, el);
       }
     });
 
     el.addEventListener("dblclick", () => {
-      showSingleVerse(bookId, chapter, v, bookLabel);
+      if (state.settings.overlayEnabled) {
+        selectVerseForOverlay(bookId, chapter, v, bookLabel, el);
+      } else {
+        showSingleVerse(bookId, chapter, v, bookLabel);
+      }
     });
 
     container.appendChild(el);
@@ -396,12 +406,48 @@ function showSingleVerse(bookId, chapter, verse, bookLabel) {
   state.singleVerseItems = items;
 
   updateDisplay();
-  if (state.settings.overlayEnabled) {
-    updateOverlayContent();
-  } else {
-    presentItems(items, false, state.verseIndex);
+  presentItems(items, false, state.verseIndex);
+  updateOverlayContent();
+}
+
+function selectVerseForOverlay(bookId, chapter, verse, bookLabel, el) {
+  document.querySelectorAll('.browser-verse.selected').forEach((e) => e.classList.remove('selected'));
+  el.classList.add('selected');
+
+  state.songActive = false;
+  state.selectedSongId = null;
+
+  const items = state.chapterVerses.map((v) => {
+    const base = {
+      type: "verse",
+      reference: `${bookLabel} ${chapter}:${v.verse}`,
+    };
+    if (state.dualMode) {
+      return { ...base, text: v.text || "", textEn: v.textEn || "" };
+    }
+    return { ...base, text: v.text, textEn: null };
+  });
+
+  const startIdx = state.chapterVerses.findIndex((v) => v.verse === verse.verse);
+  state.verseIndex = startIdx >= 0 ? startIdx : 0;
+  state.singleVerseItems = items;
+
+  updateDisplay();
+  document.getElementById('overlay-send-btn').classList.remove('hidden');
+}
+
+function sendSelectedToOverlay() {
+  if (state.singleVerseItems && state.singleVerseItems.length > 0) {
     updateOverlayContent();
   }
+  document.getElementById('overlay-send-btn').classList.add('hidden');
+  document.querySelectorAll('.browser-verse.selected').forEach((e) => e.classList.remove('selected'));
+}
+
+function clearOverlaySelection() {
+  state.overlayVerse = null;
+  document.getElementById('overlay-send-btn').classList.add('hidden');
+  document.querySelectorAll('.browser-verse.selected').forEach((e) => e.classList.remove('selected'));
 }
 
 function updateDisplay() {
@@ -604,6 +650,7 @@ function navigateChapter(direction) {
   const newIdx = state.verseIndex + direction;
   if (newIdx < 0 || newIdx >= state.singleVerseItems.length) return;
   state.verseIndex = newIdx;
+  clearOverlaySelection();
   updateDisplay();
   if (state.settings.overlayEnabled) {
     updateOverlayContent();
@@ -618,6 +665,7 @@ function navigateSong(direction) {
   const newIdx = state.verseIndex + direction;
   if (newIdx < 0 || newIdx >= state.songItems.length) return;
   state.verseIndex = newIdx;
+  clearOverlaySelection();
   updateDisplay();
   if (state.settings.overlayEnabled) {
     updateOverlayContent();
@@ -655,6 +703,7 @@ function setupSearch() {
   document.getElementById("search-btn").addEventListener("click", async () => {
     const keyword = document.getElementById("bible-search").value.trim();
     if (!keyword) return;
+    clearOverlaySelection();
 
     let results;
     if (state.dualMode) {
@@ -721,13 +770,21 @@ function setupSearch() {
         if (ev.ctrlKey || ev.metaKey) {
           ev.preventDefault();
           toggleStackVerse(item.book, item.chapter, item, bookLabel);
+          return;
+        }
+        if (state.settings.overlayEnabled) {
+          selectVerseForOverlay(item.book, item.chapter, item, bookLabel, el);
         }
       });
       el.addEventListener("dblclick", () => {
-        state.verseIndex = i;
-        updateDisplay();
-        presentItems(results, false, state.verseIndex);
-        updateOverlayContent();
+        if (state.settings.overlayEnabled) {
+          selectVerseForOverlay(item.book, item.chapter, item, bookLabel, el);
+        } else {
+          state.verseIndex = i;
+          updateDisplay();
+          presentItems(results, false, state.verseIndex);
+          updateOverlayContent();
+        }
       });
       container.appendChild(el);
     });
@@ -949,6 +1006,7 @@ function setupSettings() {
         updateOverlayContent();
       } else {
         await window.api.closeOverlay();
+        clearOverlaySelection();
       }
     });
 
@@ -972,6 +1030,8 @@ function setupSettings() {
       });
     }
   });
+
+  document.getElementById('overlay-send-btn').addEventListener('click', sendSelectedToOverlay);
 }
 
 const THEME_ENTRIES = [
