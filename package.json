@@ -33,6 +33,10 @@
       {
         "from": "assets",
         "to": "assets"
+      },
+      {
+        "from": "app-update.yml",
+        "to": "app-update.yml"
       }
     ],
     "publish": {

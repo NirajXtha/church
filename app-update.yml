@@ -1,3 +1,4 @@
 provider: github
 owner: NirajXtha
 repo: church
+releaseType: release
