@@ -34,5 +34,5 @@ jobs:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: Church Presenter ${{ steps.tag.outputs.date }}
           body: Auto-built from commit ${{ github.sha }}
-          files: dist/*.exe
+          files: dist/*
           generate_release_notes: true

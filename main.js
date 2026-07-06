@@ -311,18 +311,22 @@ function doCheckForUpdates() {
 function setupAutoUpdater() {
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = false;
+  autoUpdater.forceDevUpdateConfig = true;
 
   autoUpdater.on("checking-for-update", () => {
+    console.log("[AutoUpdater] Checking for updates...");
     if (mainWin && !mainWin.isDestroyed())
       mainWin.webContents.send("update-status", { status: "checking" });
   });
 
   autoUpdater.on("update-available", (info) => {
+    console.log("[AutoUpdater] Update available:", info.version);
     if (mainWin && !mainWin.isDestroyed())
       mainWin.webContents.send("update-status", { status: "available", info });
   });
 
   autoUpdater.on("update-not-available", () => {
+    console.log("[AutoUpdater] No update available");
     if (mainWin && !mainWin.isDestroyed())
       mainWin.webContents.send("update-status", { status: "up-to-date" });
   });
@@ -336,19 +340,19 @@ function setupAutoUpdater() {
   });
 
   autoUpdater.on("update-downloaded", () => {
+    console.log("[AutoUpdater] Update downloaded");
     if (mainWin && !mainWin.isDestroyed())
       mainWin.webContents.send("update-status", { status: "downloaded" });
   });
 
   autoUpdater.on("error", (err) => {
+    console.error("[AutoUpdater] Error:", err ? err.message : "unknown error");
     if (mainWin && !mainWin.isDestroyed())
       mainWin.webContents.send("update-status", {
         status: "error",
         message: err ? err.message : "unknown error",
       });
   });
-
-  doCheckForUpdates();
 }
 
 app.whenReady().then(() => {

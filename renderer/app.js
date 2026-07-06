@@ -53,11 +53,8 @@ function setupAutoUpdateUI() {
   const text = document.getElementById('update-bar-text');
   const btn = document.getElementById('update-bar-btn');
 
-  bar.classList.remove('hidden');
-  text.textContent = 'Checking for updates...';
-  btn.classList.add('hidden');
-
   window.api.onUpdateStatus((data) => {
+    console.log('[Update]', data);
     bar.classList.remove('hidden');
     btn.classList.add('hidden');
     switch (data.status) {
@@ -96,6 +93,10 @@ function setupAutoUpdateUI() {
     }
   });
 }
+
+document.getElementById('check-updates-btn').addEventListener('click', () => {
+  window.api.checkForUpdates();
+});
 
 function setupTabs() {
   document.querySelectorAll(".tab-btn").forEach((btn) => {

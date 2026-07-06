@@ -82,6 +82,7 @@ contextBridge.exposeInMainWorld("api", {
   // Auto-update
   onUpdateStatus: (callback) =>
     ipcRenderer.on("update-status", (_, data) => callback(data)),
+  checkForUpdates: () => ipcRenderer.invoke("check-for-updates"),
   startUpdateDownload: () => ipcRenderer.invoke("start-update-download"),
   installUpdate: () => ipcRenderer.invoke("install-update"),
 });
