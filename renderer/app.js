@@ -50,24 +50,34 @@ function init() {
   updateDisplay();
 }
 
+let updateBarTimer = null;
+
 function setupAutoUpdateUI() {
   const bar = document.getElementById('update-bar');
   const text = document.getElementById('update-bar-text');
   const btn = document.getElementById('update-bar-btn');
 
+  function hideAfter(ms) {
+    clearTimeout(updateBarTimer);
+    updateBarTimer = setTimeout(() => bar.classList.add('hidden'), ms);
+  }
+
   window.api.onUpdateStatus((data) => {
     console.log('[Update]', data);
+    clearTimeout(updateBarTimer);
     bar.classList.remove('hidden');
     btn.classList.add('hidden');
     switch (data.status) {
       case 'checking':
         text.textContent = 'Checking for updates...';
+        hideAfter(10000);
         break;
       case 'available':
         text.textContent = 'Update v' + data.info.version + ' available';
         btn.textContent = 'Download';
         btn.classList.remove('hidden');
         btn.onclick = () => window.api.startUpdateDownload();
+        hideAfter(15000);
         break;
       case 'downloading':
         const pct = Math.round(data.progress.percent);
@@ -78,19 +88,15 @@ function setupAutoUpdateUI() {
         btn.textContent = 'Restart & Install';
         btn.classList.remove('hidden');
         btn.onclick = () => window.api.installUpdate();
+        hideAfter(20000);
         break;
       case 'up-to-date':
         text.textContent = 'You are up to date!';
-        setTimeout(() => bar.classList.add('hidden'), 3000);
+        hideAfter(3000);
         break;
       case 'error':
-        text.textContent = 'Update check failed: ' + (data.message || 'unknown error') + ' — click to retry';
-        btn.textContent = 'Retry';
-        btn.classList.remove('hidden');
-        btn.onclick = () => {
-          bar.classList.add('hidden');
-          window.api.checkForUpdates();
-        };
+        text.textContent = 'Update check failed: ' + (data.message || 'unknown error');
+        hideAfter(10000);
         break;
     }
   });
