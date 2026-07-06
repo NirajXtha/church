@@ -830,41 +830,72 @@ function setupSearch() {
   });
 
   document.getElementById("song-search").addEventListener("input", (e) => {
-    renderSongList(e.target.value);
+    renderSongList(e.target.value, document.getElementById("song-category-filter").value);
+  });
+
+  document.getElementById("song-category-filter").addEventListener("change", (e) => {
+    renderSongList(document.getElementById("song-search").value, e.target.value);
   });
 }
 
 async function loadSongs() {
   songs = await window.api.getAllSongs();
+  populateCategoryFilter();
   renderSongList();
 }
 
-function renderSongList(filter) {
+function renderSongList(filter, category) {
   const container = document.getElementById("song-list");
   container.innerHTML = "";
   let list = songs;
+  if (category) {
+    list = list.filter((s) => s.category === category);
+  }
   if (filter) {
     const f = filter.toLowerCase();
-    list = songs.filter(
+    list = list.filter(
       (s) =>
         s.title.toLowerCase().includes(f) ||
-        (s.category && s.category.toLowerCase().includes(f)),
+        (s.category && s.category.toLowerCase().includes(f)) ||
+        (s.tags && s.tags.toLowerCase().includes(f)),
     );
   }
   list.forEach((s) => {
     const el = document.createElement("div");
     el.className =
       "song-item" + (state.selectedSongId === s.id ? " active" : "");
+    const tags = s.tags
+      ? s.tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean)
+      : [];
+    const tagsHtml = tags.length
+      ? `<div class="song-tags">${tags.map((t) => `<span class="tag-chip">${t}</span>`).join("")}</div>`
+      : "";
     el.innerHTML = `
       <div>
         <div class="song-title">${s.title}</div>
         <div class="song-meta">${s.category || ""} ${s.language ? "| " + s.language : ""}</div>
+        ${tagsHtml}
       </div>
     `;
     el.addEventListener("click", () => showLyricsPreview(s.id));
     el.addEventListener("dblclick", () => displaySong(s.id));
     container.appendChild(el);
   });
+}
+
+function populateCategoryFilter() {
+  const cats = [
+    ...new Set(songs.map((s) => s.category).filter(Boolean)),
+  ].sort();
+  const sel = document.getElementById("song-category-filter");
+  const cur = sel.value;
+  sel.innerHTML =
+    '<option value="">All Categories</option>' +
+    cats.map((c) => `<option value="${c}">${c}</option>`).join("");
+  sel.value = cur || "";
 }
 
 async function showLyricsPreview(id) {

@@ -637,6 +637,39 @@ body {
   white-space: nowrap;
 }
 
+.song-filter-row {
+  margin-bottom: 10px;
+}
+
+.song-filter-row select {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+}
+
+.song-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.tag-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 10px;
+  border-radius: 10px;
+  background: rgba(233, 69, 96, 0.15);
+  color: var(--accent);
+  white-space: nowrap;
+}
+
 .song-controls-row {
   display: flex;
   gap: 8px;

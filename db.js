@@ -87,7 +87,7 @@ function getChapters(bookId) {
 function getAllSongs() {
   const d = getDB();
   return d
-    .prepare("SELECT id, title, category, language FROM songs ORDER BY title")
+    .prepare("SELECT id, title, category, language, tags FROM songs ORDER BY title")
     .all();
 }
 
