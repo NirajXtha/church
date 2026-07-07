@@ -57,6 +57,7 @@
                 <div class="browser-placeholder">Select a book and chapter</div>
               </div>
               <button id="overlay-send-btn" class="secondary-btn hidden" style="width:100%;margin-top:8px">Show in Overlay</button>
+              <button id="remove-overlay-btn" class="danger-btn hidden" style="width:100%;margin-top:8px">Remove Overlay</button>
             </div>
             <div class="stack-section" id="stack-section" style="display: none">
               <h3>Stack (Ctrl+Click to add)</h3>
@@ -207,20 +208,13 @@
             </div>
             <div class="settings-section">
               <h3>Verse Overlay</h3>
-              <p class="setting-hint">Shows the current verse as an always-on-top bar on the secondary display (no big screen).</p>
-              <div class="dual-toggle">
-                <label class="switch-label">
-                  <input type="checkbox" id="overlay-enable" />
-                  <span class="switch-slider"></span>
-                  Show Overlay
-                </label>
-              </div>
-              <div class="form-group" style="margin-top: 8px">
+              <p class="setting-hint">Shows the selected verse as an always-on-top bar on the secondary display.</p>
+              <div class="form-group">
                 <label>Position</label>
                 <select id="overlay-position">
                   <option value="top">Top</option>
-                  <option value="center" selected>Center</option>
-                  <option value="bottom">Bottom</option>
+                  <option value="center">Center</option>
+                  <option value="bottom" selected>Bottom</option>
                 </select>
               </div>
               <div class="form-group">

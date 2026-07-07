@@ -22,12 +22,12 @@ let state = {
     songFormat: "verses-only",
     stackVerses: false,
     theme: "",
-    overlayEnabled: false,
-    overlayPosition: "center",
+    overlayPosition: "bottom",
     overlayFontSize: 20,
   },
   currentSongId: null,
   overlayVerse: null,
+  overlayOpen: false,
 };
 
 let books = [];
@@ -374,17 +374,11 @@ async function loadBrowserVerses(bookId, chapter) {
         toggleStackVerse(bookId, chapter, v, bookLabel);
         return;
       }
-      if (state.settings.overlayEnabled) {
-        selectVerseForOverlay(bookId, chapter, v, bookLabel, el);
-      }
+      selectVerseForOverlay(bookId, chapter, v, bookLabel, el);
     });
 
     el.addEventListener("dblclick", () => {
-      if (state.settings.overlayEnabled) {
-        selectVerseForOverlay(bookId, chapter, v, bookLabel, el);
-      } else {
-        showSingleVerse(bookId, chapter, v, bookLabel);
-      }
+      showSingleVerse(bookId, chapter, v, bookLabel);
     });
 
     container.appendChild(el);
@@ -414,7 +408,6 @@ function showSingleVerse(bookId, chapter, verse, bookLabel) {
 
   updateDisplay();
   presentItems(items, false, state.verseIndex);
-  updateOverlayContent();
 }
 
 function selectVerseForOverlay(bookId, chapter, verse, bookLabel, el) {
@@ -441,13 +434,20 @@ function selectVerseForOverlay(bookId, chapter, verse, bookLabel, el) {
 
   updateDisplay();
   document.getElementById('overlay-send-btn').classList.remove('hidden');
+  document.getElementById('remove-overlay-btn').classList.add('hidden');
 }
 
-function sendSelectedToOverlay() {
+async function sendSelectedToOverlay() {
   if (state.singleVerseItems && state.singleVerseItems.length > 0) {
+    if (!state.overlayOpen) {
+      await window.api.openOverlay();
+      await window.api.setOverlayPosition(state.settings.overlayPosition);
+      state.overlayOpen = true;
+    }
     updateOverlayContent();
   }
   document.getElementById('overlay-send-btn').classList.add('hidden');
+  document.getElementById('remove-overlay-btn').classList.remove('hidden');
   document.querySelectorAll('.browser-verse.selected').forEach((e) => e.classList.remove('selected'));
 }
 
@@ -659,12 +659,7 @@ function navigateChapter(direction) {
   state.verseIndex = newIdx;
   clearOverlaySelection();
   updateDisplay();
-  if (state.settings.overlayEnabled) {
-    updateOverlayContent();
-  } else {
-    presentItems(state.singleVerseItems, false, state.verseIndex);
-    updateOverlayContent();
-  }
+  presentItems(state.singleVerseItems, false, state.verseIndex);
 }
 
 function navigateSong(direction) {
@@ -674,12 +669,7 @@ function navigateSong(direction) {
   state.verseIndex = newIdx;
   clearOverlaySelection();
   updateDisplay();
-  if (state.settings.overlayEnabled) {
-    updateOverlayContent();
-  } else {
-    presentItems(state.songItems, true, state.verseIndex);
-    updateOverlayContent();
-  }
+  presentItems(state.songItems, true, state.verseIndex);
 }
 
 function pickRandomUserBg() {
@@ -790,19 +780,12 @@ function setupSearch() {
           toggleStackVerse(item.book, item.chapter, item, bookLabel);
           return;
         }
-        if (state.settings.overlayEnabled) {
-          selectVerseForOverlay(item.book, item.chapter, item, bookLabel, el);
-        }
+        selectVerseForOverlay(item.book, item.chapter, item, bookLabel, el);
       });
       el.addEventListener("dblclick", () => {
-        if (state.settings.overlayEnabled) {
-          selectVerseForOverlay(item.book, item.chapter, item, bookLabel, el);
-        } else {
-          state.verseIndex = i;
-          updateDisplay();
-          presentItems(results, false, state.verseIndex);
-          updateOverlayContent();
-        }
+        state.verseIndex = i;
+        updateDisplay();
+        presentItems(results, false, state.verseIndex);
       });
       container.appendChild(el);
     });
@@ -930,7 +913,6 @@ async function displaySong(id) {
   state.songItems = items;
   updateDisplay();
   presentItems(items, true, 0);
-  updateOverlayContent();
 }
 
 function setupSettings() {
@@ -1048,26 +1030,10 @@ function setupSettings() {
     });
 
   document
-    .getElementById("overlay-enable")
-    .addEventListener("change", async (e) => {
-      state.settings.overlayEnabled = e.target.checked;
-      if (e.target.checked) {
-        await window.api.openOverlay();
-        await window.api.setOverlayPosition(state.settings.overlayPosition);
-        updateOverlayContent();
-      } else {
-        await window.api.closeOverlay();
-        clearOverlaySelection();
-      }
-    });
-
-  document
     .getElementById("overlay-position")
     .addEventListener("change", async (e) => {
       state.settings.overlayPosition = e.target.value;
-      if (state.settings.overlayEnabled) {
-        await window.api.setOverlayPosition(e.target.value);
-      }
+      await window.api.setOverlayPosition(e.target.value);
     });
 
   const ofs = document.getElementById("overlay-font-size");
@@ -1075,14 +1041,20 @@ function setupSettings() {
   ofs.addEventListener("input", async () => {
     state.settings.overlayFontSize = parseInt(ofs.value);
     ofsLabel.textContent = state.settings.overlayFontSize + "px";
-    if (state.settings.overlayEnabled) {
-      await window.api.updateOverlay({
-        fontSize: state.settings.overlayFontSize,
-      });
-    }
+    await window.api.updateOverlay({
+      fontSize: state.settings.overlayFontSize,
+    });
   });
 
   document.getElementById('overlay-send-btn').addEventListener('click', sendSelectedToOverlay);
+
+  document.getElementById('remove-overlay-btn').addEventListener('click', async () => {
+    if (state.overlayOpen) {
+      await window.api.closeOverlay();
+      state.overlayOpen = false;
+      document.getElementById('remove-overlay-btn').classList.add('hidden');
+    }
+  });
 }
 
 const THEME_ENTRIES = [
@@ -1131,7 +1103,6 @@ async function applyThemeBackground(theme) {
 }
 
 async function updateOverlayContent() {
-  if (!state.settings.overlayEnabled) return;
   let text = "";
   let reference = "";
   if (state.singleVerseItems && state.singleVerseItems.length > 0) {
@@ -1330,5 +1301,4 @@ async function resendToPresentation() {
       presentStack();
     }
   }
-  updateOverlayContent();
 }

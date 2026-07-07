@@ -18,6 +18,8 @@
   --shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
+.hidden { display: none; }
+
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: var(--bg-primary);
