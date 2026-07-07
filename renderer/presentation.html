@@ -243,6 +243,18 @@
         state.settings.bgPath = path;
         state.settings.bgPaths = paths || [];
         if (fit) state.settings.bgFit = fit;
+
+        if (type === "video" && path) {
+          const existing = bgContainer.querySelector("video");
+          const src = "file:///" + path.replace(/\\/g, "/");
+          if (existing && existing.src === src) {
+            existing.style.objectFit = state.settings.bgFit;
+            bgContainer.style.background = "";
+            applyBgDim();
+            return;
+          }
+        }
+
         bgContainer.querySelectorAll("img, video").forEach((el) => el.remove());
         if (!path) {
           bgContainer.style.background = "#000";
