@@ -56,10 +56,15 @@ function setupAutoUpdateUI() {
   const bar = document.getElementById('update-bar');
   const text = document.getElementById('update-bar-text');
   const btn = document.getElementById('update-bar-btn');
+  const FIFTEEN_DAYS = 15 * 24 * 60 * 60 * 1000;
 
   function hideAfter(ms) {
     clearTimeout(updateBarTimer);
     updateBarTimer = setTimeout(() => bar.classList.add('hidden'), ms);
+  }
+
+  function saveCheckTime() {
+    localStorage.setItem('lastUpdateCheck', Date.now());
   }
 
   window.api.onUpdateStatus((data) => {
@@ -78,6 +83,7 @@ function setupAutoUpdateUI() {
         btn.classList.remove('hidden');
         btn.onclick = () => window.api.startUpdateDownload();
         hideAfter(15000);
+        saveCheckTime();
         break;
       case 'downloading':
         const pct = Math.round(data.progress.percent);
@@ -93,17 +99,25 @@ function setupAutoUpdateUI() {
       case 'up-to-date':
         text.textContent = 'You are up to date!';
         hideAfter(3000);
+        saveCheckTime();
         break;
       case 'error':
         text.textContent = 'Update check failed: ' + (data.message || 'unknown error');
         hideAfter(10000);
+        saveCheckTime();
         break;
     }
   });
+
+  const lastCheck = localStorage.getItem('lastUpdateCheck');
+  if (!lastCheck || (Date.now() - parseInt(lastCheck)) >= FIFTEEN_DAYS) {
+    window.api.checkForUpdates();
+  }
 }
 
 document.getElementById('check-updates-btn').addEventListener('click', () => {
   window.api.checkForUpdates();
+  localStorage.setItem('lastUpdateCheck', Date.now());
 });
 
 function setupTabs() {
