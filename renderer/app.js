@@ -142,57 +142,171 @@ async function loadBooks() {
 
 function renderBookSelect() {
   const select = document.getElementById("book-select");
+  const trigger = document.getElementById("book-trigger");
+  const options = document.getElementById("book-options");
   select.innerHTML = "";
+  options.innerHTML = "";
+
   books.forEach((b) => {
     const opt = document.createElement("option");
     opt.value = b.id;
     opt.textContent = state.lang === "nepali" ? b.name_nepali : b.name_english;
     select.appendChild(opt);
+
+    const el = document.createElement("div");
+    el.className = "select-filter-option";
+    el.dataset.id = b.id;
+    el.textContent = opt.textContent;
+    el.dataset.label = el.textContent.toLowerCase();
+    el.dataset.romanji = (b.romanji || "").toLowerCase();
+    el.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      selectBook(b);
+    });
+    options.appendChild(el);
   });
-  if (books.length > 0) loadChapters(books[0].id);
+
+  if (books.length > 0) selectBook(books[0]);
+}
+
+function selectBook(book) {
+  const select = document.getElementById("book-select");
+  const trigger = document.getElementById("book-trigger");
+  const dropdown = document.getElementById("book-dropdown");
+  const filter = document.getElementById("book-filter");
+  select.value = book.id;
+  trigger.textContent = state.lang === "nepali" ? book.name_nepali : book.name_english;
+  dropdown.classList.add("hidden");
+  filter.value = "";
+  state.currentChapter = {
+    ...state.currentChapter,
+    bookId: book.id,
+    bookName: book,
+  };
+  loadChapters(book.id);
+}
+
+function filterSelectOptions(optionsContainer, query) {
+  const q = query.toLowerCase();
+  const items = optionsContainer.querySelectorAll(".select-filter-option");
+  let firstMatch = null;
+  items.forEach((el) => {
+    const label = el.dataset.label || "";
+    const romanji = el.dataset.romanji || "";
+    const matches = !q || label.includes(q) || romanji.includes(q);
+    el.style.display = matches ? "" : "none";
+    if (matches && !firstMatch) firstMatch = el;
+  });
+  return firstMatch;
 }
 
 async function loadChapters(bookId) {
   const chapters = await window.api.getChapters(bookId);
   const select = document.getElementById("chapter-select");
+  const trigger = document.getElementById("chapter-trigger");
+  const options = document.getElementById("chapter-options");
   select.innerHTML = "";
+  options.innerHTML = "";
+
   chapters.forEach((ch) => {
     const opt = document.createElement("option");
     opt.value = ch;
     opt.textContent = "Chapter " + ch;
     select.appendChild(opt);
+
+    const el = document.createElement("div");
+    el.className = "select-filter-option";
+    el.dataset.value = ch;
+    el.textContent = opt.textContent;
+    el.dataset.label = el.textContent.toLowerCase();
+    el.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      selectChapter(ch);
+    });
+    options.appendChild(el);
   });
-  if (chapters.length > 0) {
-    const bk = books.find((b) => b.id === parseInt(bookId));
-    state.currentChapter = {
-      bookId: parseInt(bookId),
-      bookName: bk,
-      chapter: chapters[0],
-    };
-    loadBrowserVerses(parseInt(bookId), chapters[0]);
-  }
+
+  if (chapters.length > 0) selectChapter(chapters[0]);
+}
+
+function selectChapter(chapter) {
+  const select = document.getElementById("chapter-select");
+  const trigger = document.getElementById("chapter-trigger");
+  const dropdown = document.getElementById("chapter-dropdown");
+  const filter = document.getElementById("chapter-filter");
+  select.value = chapter;
+  trigger.textContent = "Chapter " + chapter;
+  dropdown.classList.add("hidden");
+  filter.value = "";
+  const bookId = state.currentChapter?.bookId;
+  const bk = books.find((b) => b.id === bookId);
+  state.currentChapter = {
+    bookId: bookId,
+    bookName: bk,
+    chapter: chapter,
+  };
+  clearOverlaySelection();
+  loadBrowserVerses(bookId, chapter);
 }
 
 function setupBibleBrowser() {
-  document.getElementById("book-select").addEventListener("change", (e) => {
-    const bk = books.find((b) => b.id === parseInt(e.target.value));
-    state.currentChapter = {
-      ...state.currentChapter,
-      bookId: parseInt(e.target.value),
-      bookName: bk,
-    };
-    loadChapters(parseInt(e.target.value));
+  const bookTrigger = document.getElementById("book-trigger");
+  const bookDropdown = document.getElementById("book-dropdown");
+  const bookFilter = document.getElementById("book-filter");
+  const bookOptions = document.getElementById("book-options");
+  const chapterTrigger = document.getElementById("chapter-trigger");
+  const chapterDropdown = document.getElementById("chapter-dropdown");
+  const chapterFilter = document.getElementById("chapter-filter");
+  const chapterOptions = document.getElementById("chapter-options");
+
+  bookTrigger.addEventListener("click", () => {
+    const isOpen = !bookDropdown.classList.contains("hidden");
+    closeAllDropdowns();
+    if (!isOpen) {
+      bookDropdown.classList.remove("hidden");
+      bookFilter.value = "";
+      filterSelectOptions(bookOptions, "");
+      bookFilter.focus();
+    }
   });
-  document.getElementById("chapter-select").addEventListener("change", (e) => {
-    const bookId = parseInt(document.getElementById("book-select").value);
-    const bk = books.find((b) => b.id === bookId);
-    state.currentChapter = {
-      bookId,
-      bookName: bk,
-      chapter: parseInt(e.target.value),
-    };
-    clearOverlaySelection();
-    loadBrowserVerses(bookId, parseInt(e.target.value));
+
+  bookFilter.addEventListener("input", () => {
+    filterSelectOptions(bookOptions, bookFilter.value);
+  });
+
+  chapterTrigger.addEventListener("click", () => {
+    const isOpen = !chapterDropdown.classList.contains("hidden");
+    closeAllDropdowns();
+    if (!isOpen) {
+      chapterDropdown.classList.remove("hidden");
+      chapterFilter.value = "";
+      filterSelectOptions(chapterOptions, "");
+      chapterFilter.focus();
+    }
+  });
+
+  chapterFilter.addEventListener("input", () => {
+    filterSelectOptions(chapterOptions, chapterFilter.value);
+  });
+
+  function closeAllDropdowns() {
+    bookDropdown.classList.add("hidden");
+    chapterDropdown.classList.add("hidden");
+  }
+
+  document.addEventListener("mousedown", (e) => {
+    if (
+      !bookTrigger.contains(e.target) &&
+      !bookDropdown.contains(e.target)
+    ) {
+      bookDropdown.classList.add("hidden");
+    }
+    if (
+      !chapterTrigger.contains(e.target) &&
+      !chapterDropdown.contains(e.target)
+    ) {
+      chapterDropdown.classList.add("hidden");
+    }
   });
 
   function getBookLabel(bookId) {

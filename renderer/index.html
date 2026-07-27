@@ -46,11 +46,25 @@
               <div class="form-row">
                 <div class="form-group half">
                   <label>Book</label>
-                  <select id="book-select"></select>
+                  <div class="select-filter-wrap">
+                    <select id="book-select" class="hidden-select"></select>
+                    <div class="select-filter-trigger" id="book-trigger"></div>
+                    <div class="select-filter-dropdown hidden" id="book-dropdown">
+                      <input type="text" class="select-filter-input" id="book-filter" placeholder="Type to search..." autocomplete="off" />
+                      <div class="select-filter-options" id="book-options"></div>
+                    </div>
+                  </div>
                 </div>
                 <div class="form-group half">
                   <label>Chapter</label>
-                  <select id="chapter-select"></select>
+                  <div class="select-filter-wrap">
+                    <select id="chapter-select" class="hidden-select"></select>
+                    <div class="select-filter-trigger" id="chapter-trigger"></div>
+                    <div class="select-filter-dropdown hidden" id="chapter-dropdown">
+                      <input type="text" class="select-filter-input" id="chapter-filter" placeholder="Type to search..." autocomplete="off" />
+                      <div class="select-filter-options" id="chapter-options"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div class="verse-browser" id="verse-browser">

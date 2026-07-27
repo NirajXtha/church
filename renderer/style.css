@@ -486,6 +486,93 @@ body {
   flex: 1;
 }
 
+.hidden-select {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+
+.select-filter-wrap {
+  position: relative;
+}
+
+.select-filter-trigger {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: border 0.2s;
+}
+
+.select-filter-trigger:hover {
+  border-color: var(--accent);
+}
+
+.select-filter-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 0 0 var(--radius) var(--radius);
+  z-index: 100;
+  margin-top: -1px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.select-filter-dropdown.hidden {
+  display: none;
+}
+
+.select-filter-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+}
+
+.select-filter-input:focus {
+  border-bottom-color: var(--accent);
+}
+
+.select-filter-options {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.select-filter-options::-webkit-scrollbar {
+  width: 6px;
+}
+
+.select-filter-options::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+.select-filter-option {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-primary);
+  transition: background 0.15s;
+}
+
+.select-filter-option:hover {
+  background: rgba(233, 69, 96, 0.15);
+}
+
 .primary-btn {
   width: 100%;
   padding: 10px 16px;
