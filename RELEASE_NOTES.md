@@ -1,12 +1,11 @@
-# Release Notes - v1.0.14
+# Release Notes - v1.0.15
 
 ## New Features
 
 ### Searchable Book & Chapter Dropdowns
-- Book and chapter selectors are now filterable text inputs instead of dropdowns
+- Book and chapter selectors now have a search input at the top of the dropdown
 - Type to instantly filter the list — no more scrolling through 66 books
 - Book search supports **Nepali**, **English**, and **Romanji** (romanized Nepali) names when in Nepali mode
-- Keyboard navigation: Arrow keys to move, Enter to select, Escape to close
 
 ### Romanji Book Names
 - Added `romanji` column to the books database with romanized Nepali names for all 66 Bible books
@@ -17,10 +16,11 @@
 - Bible verse search now also matches against book names
 - In Nepali mode: searches verse text, Nepali book names, and Romanji book names
 - In English mode: searches verse text and English book names
-- Search "Utpatti" or "Prakash" to find all verses from that book
 
-## Bug Fixes
-- None
+### Automatic Song Migration
+- New songs added to the bundled database are automatically merged into existing users' databases on update
+- User-added songs are never overwritten or deleted
+- Only songs with new titles are inserted — no duplicates
 
 ## Upgrade Notes
-- Existing users: the romanji column is automatically added to your local database on first launch. Your songs and other data are preserved.
+- Existing users: the romanji column and any new songs are automatically added on first launch. Your existing songs and data are preserved.
