@@ -86,6 +86,7 @@ function getDB() {
     db = new Database(userDataPath);
     db.pragma("journal_mode = WAL");
     migrateRomanji(db);
+    migrateSongs(db);
   }
   return db;
 }
@@ -100,6 +101,41 @@ function migrateRomanji(database) {
     });
     tx();
   }
+}
+
+function migrateSongs(database) {
+  const bundledPath = app.isPackaged
+    ? path.join(process.resourcesPath, "bible.sqlite")
+    : path.join(__dirname, "bible.sqlite");
+  if (!fs.existsSync(bundledPath)) return;
+
+  const bundled = new Database(bundledPath, { readonly: true });
+  let bundledSongs;
+  try {
+    bundledSongs = bundled.prepare("SELECT title, lyrics, category, language, author, tags FROM songs").all();
+  } catch {
+    bundled.close();
+    return;
+  }
+  bundled.close();
+
+  if (!bundledSongs.length) return;
+
+  const existing = new Set(
+    database.prepare("SELECT title FROM songs").all().map((r) => r.title),
+  );
+  const toInsert = bundledSongs.filter((s) => !existing.has(s.title));
+  if (!toInsert.length) return;
+
+  const ins = database.prepare(
+    "INSERT INTO songs (title, lyrics, category, language, author, tags) VALUES (?, ?, ?, ?, ?, ?)",
+  );
+  const tx = database.transaction(() => {
+    for (const s of toInsert) {
+      ins.run(s.title, s.lyrics, s.category || "", s.language || "", s.author || "", s.tags || "");
+    }
+  });
+  tx();
 }
 
 function getBooks(lang) {
