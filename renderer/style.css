@@ -774,11 +774,33 @@ body {
   padding: 12px;
   border-radius: var(--radius);
   margin-bottom: 10px;
-  max-height: 200px;
+  max-height: 400px;
   overflow-y: auto;
   font-size: 13px;
   line-height: 1.6;
+}
+
+.lyrics-chunk {
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+  cursor: pointer;
   white-space: pre-wrap;
+  border-left: 3px solid transparent;
+  transition: background 0.15s;
+}
+
+.lyrics-chunk:last-child {
+  margin-bottom: 0;
+}
+
+.lyrics-chunk:hover {
+  background: rgba(233, 69, 96, 0.08);
+}
+
+.lyrics-chunk.active {
+  background: rgba(233, 69, 96, 0.2);
+  border-left-color: var(--accent);
 }
 
 .lyrics-placeholder {

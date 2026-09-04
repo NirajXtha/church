@@ -32,6 +32,9 @@ let state = {
 
 let books = [];
 let songs = [];
+let previewChunks = [];
+let previewSongId = null;
+let previewTitle = "";
 
 document.addEventListener("DOMContentLoaded", init);
 
@@ -798,6 +801,7 @@ function navigateSong(direction) {
   clearOverlaySelection();
   updateDisplay();
   presentItems(state.songItems, true, state.verseIndex);
+  highlightSongChunk(newIdx);
 }
 
 function pickRandomUserBg() {
@@ -1011,12 +1015,23 @@ function populateCategoryFilter() {
 
 async function showLyricsPreview(id) {
   state.selectedSongId = id;
-  document
-    .querySelectorAll(".song-item")
-    .forEach((el) => el.classList.remove("active"));
+  previewSongId = id;
+  document.querySelectorAll(".song-item").forEach((el) => el.classList.remove("active"));
   const lyrics = await window.api.getSongLyrics(id);
-  document.getElementById("song-lyrics-preview").innerHTML =
-    lyrics.lyrics.replace(/\n/g, "<br>");
+  previewTitle = lyrics.title;
+  previewChunks = lyrics.lyrics.split(/\n\n+/).filter((v) => v.trim());
+
+  const container = document.getElementById("song-lyrics-preview");
+  container.innerHTML = "";
+  previewChunks.forEach((chunk, i) => {
+    const el = document.createElement("div");
+    el.className = "lyrics-chunk";
+    el.dataset.index = i;
+    el.textContent = chunk.trim();
+    el.addEventListener("click", () => onChunkClick(i));
+    container.appendChild(el);
+  });
+
   document.querySelectorAll(".song-item").forEach((el) => {
     el.classList.toggle(
       "active",
@@ -1024,6 +1039,34 @@ async function showLyricsPreview(id) {
     );
   });
   state.currentSongId = id;
+}
+
+function onChunkClick(index) {
+  displaySongFromIndex(previewSongId, index);
+}
+
+async function displaySongFromIndex(id, startIndex) {
+  const data = await window.api.getSongLyrics(id);
+  const verses = data.lyrics.split(/\n\n+/).filter((v) => v.trim());
+  const items = verses.map((v) => ({
+    type: "song",
+    text: v.trim(),
+    title: data.title,
+  }));
+  state.songActive = true;
+  state.selectedSongId = id;
+  state.verseIndex = startIndex;
+  state.singleVerseItems = null;
+  state.songItems = items;
+  updateDisplay();
+  presentItems(items, true, startIndex);
+  highlightSongChunk(startIndex);
+}
+
+function highlightSongChunk(index) {
+  document.querySelectorAll(".lyrics-chunk").forEach((el, i) => {
+    el.classList.toggle("active", i === index);
+  });
 }
 
 async function displaySong(id) {
@@ -1041,6 +1084,7 @@ async function displaySong(id) {
   state.songItems = items;
   updateDisplay();
   presentItems(items, true, 0);
+  highlightSongChunk(0);
 }
 
 function setupSettings() {
