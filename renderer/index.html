@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,7 +10,19 @@
     <div id="app">
       <div id="sidebar">
         <div class="sidebar-header">
-          <h2>Church Presenter</h2>
+          <div class="brand">
+            <div class="brand-mark">&#10013;</div>
+            <div class="brand-text">
+              <h2>Church Presenter</h2>
+              <span>presentation control</span>
+            </div>
+          </div>
+          <button
+            id="theme-toggle"
+            class="theme-toggle"
+            title="Toggle theme"
+            aria-label="Toggle theme"
+          ></button>
         </div>
         <div class="sidebar-tabs">
           <button class="tab-btn active" data-tab="bible">Bible</button>
@@ -159,8 +171,8 @@
               </div>
               <div class="form-group">
                 <label>Background Dim</label>
-                <input type="range" id="bg-dim" min="0" max="100" value="0" />
-                <span id="bg-dim-label">0%</span>
+                <input type="range" id="bg-dim" min="0" max="100" value="25" />
+                <span id="bg-dim-label">25%</span>
               </div>
             </div>
             <div class="settings-section">
@@ -308,7 +320,9 @@
         </div>
         <div class="modal-footer">
           <button id="song-delete-btn" class="danger-btn hidden">Delete</button>
-          <button id="song-save-btn" class="primary-btn">Save Song</button>
+          <div class="right-actions">
+            <button id="song-save-btn" class="primary-btn">Save Song</button>
+          </div>
         </div>
       </div>
     </div>

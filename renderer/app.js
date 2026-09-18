@@ -24,6 +24,7 @@ let state = {
     theme: "",
     overlayPosition: "bottom",
     overlayFontSize: 20,
+    bgDim: 25,
   },
   currentSongId: null,
   overlayVerse: null,
@@ -40,6 +41,7 @@ document.addEventListener("DOMContentLoaded", init);
 
 function init() {
   setupTabs();
+  setupTheme();
   loadBooks();
   loadSongs();
   setupBibleBrowser();
@@ -51,6 +53,25 @@ function init() {
   setupPresentation();
   setupAutoUpdateUI();
   updateDisplay();
+}
+
+function setupTheme() {
+  const toggleBtn = document.getElementById("theme-toggle");
+  const saved = localStorage.getItem("uiTheme") || "dark";
+  applyTheme(saved);
+
+  toggleBtn.addEventListener("click", () => {
+    const current = document.documentElement.getAttribute("data-theme");
+    applyTheme(current === "dark" ? "light" : "dark");
+  });
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("uiTheme", theme);
+    const isDark = theme === "dark";
+    toggleBtn.textContent = isDark ? "\u2600" : "\u263E";
+    toggleBtn.title = isDark ? "Switch to light theme" : "Switch to dark theme";
+  }
 }
 
 let updateBarTimer = null;
@@ -1154,7 +1175,7 @@ function setupSettings() {
         document.getElementById("theme-select").value = "";
         state.settings.bgType = "video";
         state.settings.bgPath = path;
-        document.getElementById("bg-preview").style.background = "#0f3460";
+        document.getElementById("bg-preview").style.background = "#1e293b";
         document.getElementById("bg-preview").classList.add("has-bg");
         document.getElementById("bg-preview").textContent = "Video selected";
         resendToPresentation();

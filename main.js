@@ -22,6 +22,7 @@ function createWindow() {
   });
 
   mainWin.loadFile(path.join(__dirname, "renderer", "index.html"));
+  mainWin.maximize();
 }
 
 function createPresentationWindow() {
