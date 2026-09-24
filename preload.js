@@ -1,7 +1,7 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("api", {
-  getBooks: (lang) => ipcRenderer.invoke("get-books", lang),
+  getBooks: () => ipcRenderer.invoke("get-books"),
   getVerses: (bookId, chapter, startVerse, endVerse, lang) =>
     ipcRenderer.invoke(
       "get-verses",
@@ -12,9 +12,6 @@ contextBridge.exposeInMainWorld("api", {
       lang,
     ),
   getChapters: (bookId) => ipcRenderer.invoke("get-chapters", bookId),
-  getChapterCount: (bookId) => ipcRenderer.invoke("get-chapter-count", bookId),
-  getVerseCount: (bookId, chapter) =>
-    ipcRenderer.invoke("get-verse-count", bookId, chapter),
   searchVerses: (keyword, lang) =>
     ipcRenderer.invoke("search-verses", keyword, lang),
   getChapterVerses: (bookId, chapter, lang) =>
@@ -44,9 +41,11 @@ contextBridge.exposeInMainWorld("api", {
       tags,
     ),
   deleteSong: (id) => ipcRenderer.invoke("delete-song", id),
-  getBookNames: () => ipcRenderer.invoke("get-book-names"),
+  exportDatabase: () => ipcRenderer.invoke("export-database"),
+  importDatabase: (jsonData) => ipcRenderer.invoke("import-database", jsonData),
+  exportSongs: () => ipcRenderer.invoke("export-songs"),
+  importSongs: (jsonData) => ipcRenderer.invoke("import-songs", jsonData),
   getAssetPath: (filename) => ipcRenderer.invoke("get-asset-path", filename),
-  getRandomThemePath: () => ipcRenderer.invoke("get-random-theme-path"),
 
   openPresentation: () => ipcRenderer.invoke("open-presentation"),
   closePresentation: () => ipcRenderer.invoke("close-presentation"),
@@ -59,10 +58,6 @@ contextBridge.exposeInMainWorld("api", {
 
   onPresentationClosed: (callback) =>
     ipcRenderer.on("presentation-closed", callback),
-  onDisplayContent: (callback) =>
-    ipcRenderer.on("display-content", (_, data) => callback(data)),
-  onUpdateSettings: (callback) =>
-    ipcRenderer.on("update-settings", (_, data) => callback(data)),
 
   // Presentation window only
   onDisplayContentPres: (callback) =>
@@ -85,4 +80,7 @@ contextBridge.exposeInMainWorld("api", {
   checkForUpdates: () => ipcRenderer.invoke("check-for-updates"),
   startUpdateDownload: () => ipcRenderer.invoke("start-update-download"),
   installUpdate: () => ipcRenderer.invoke("install-update"),
+
+  getAppVersion: () => ipcRenderer.invoke("get-app-version"),
+  getDisplayInfo: () => ipcRenderer.invoke("get-display-info"),
 });

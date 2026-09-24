@@ -15,7 +15,9 @@
         height: 100%;
         overflow: hidden;
         background: transparent;
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, "Noto Sans", "Noto Sans Devanagari",
+          sans-serif;
         -webkit-app-region: drag;
       }
       #overlay-content {
@@ -24,23 +26,24 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 16px 24px;
+        padding: 12px 28px;
         color: #fff;
-        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+        text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
         font-size: 20px;
-        line-height: 1.4;
+        line-height: 1.5;
         text-align: center;
-        background: rgba(0, 0, 0, 0.35);
-        backdrop-filter: blur(4px);
-        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(6px);
+        border-radius: 10px;
       }
       .overlay-verse-text {
         margin-bottom: 4px;
       }
       .overlay-verse-ref {
-        font-size: 0.75em;
+        font-size: 0.72em;
         opacity: 0.7;
         font-style: italic;
+        letter-spacing: 0.5px;
       }
       .overlay-hidden {
         display: none;

@@ -1,18 +1,15 @@
-# Release Notes - v1.1.0
+## Release Notes v1.2.0
 
-## New Features
+### New Features
+- **Import/Export Data** — Transfer songs and full database between installations via JSON files
+  - Export/Import songs only (great for sharing song libraries)
+  - Export/Import full database (songs, settings, recent items, verse stack)
+  - Accessible from Settings → Data Transfer
 
-### Full UI Redesign
-- Completely redesigned the user interface with a minimalist, professional look
-- No gradients — clean flat surfaces, subtle shadows, and consistent spacing
-- New brand header with theme toggle button
+### Fixes
+- **Fixed background video replay** — Video no longer restarts when navigating verses/songs with keyboard (Space, Enter, Arrow keys) while controller is focused
+- **Fixed video URL encoding mismatch** — Fixed spaces in video filenames causing guard comparison to fail
 
-### Light & Dark Themes
-- Switch between light and dark themes from the header toggle
-- Your preferred theme is remembered between sessions
-- Chart-consistent color system across all tabs, lists, modals, and controls
-
-## Changes
-- Background dim now defaults to **25%** instead of 0%
-- App now opens in maximized mode
-- Bible tab: the verse list now stretches to fill the available space, keeping the Overlay and Stack buttons always visible on screen
+### Improvements
+- Video background now plays infinitely without restart on navigation
+- Current verse highlight persists when navigating with keyboard

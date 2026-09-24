@@ -7,6 +7,7 @@ An Electron-based presentation tool for churches. Displays Bible verses (Nepali 
 - **Bible Browser** — Browse books/chapters, double-click a verse to present the full chapter, Ctrl+Click to add to stack
 - **Stack Mode** — Build a list of verses and present them all together (centered, scrollable)
 - **Songs** — Browse, search, add/edit/delete songs; double-click to present
+- **Data Transfer** — Export/Import songs or full database (songs + settings + recent + stack) via JSON
 - **Presentation Window** — Fullscreen display with keyboard navigation (Arrow keys, Space, Escape)
 - **Custom Backgrounds** — Select images/videos or pick from 12 built-in theme images
 - **Random Theme** — Picks a random background image every time you present

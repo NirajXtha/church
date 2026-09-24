@@ -20,27 +20,29 @@ let state = {
     bgFit: "cover",
     textShadow: "medium",
     songFormat: "verses-only",
-    stackVerses: false,
     theme: "",
     overlayPosition: "bottom",
     overlayFontSize: 20,
     bgDim: 25,
   },
-  currentSongId: null,
-  overlayVerse: null,
   overlayOpen: false,
+  currentPage: "home",
+  testament: "all",
+  selectedVerseContext: null,
 };
 
 let books = [];
 let songs = [];
 let previewChunks = [];
 let previewSongId = null;
-let previewTitle = "";
+
+const RECENT_KEY = "cp.recent";
+const MAX_RECENT = 8;
 
 document.addEventListener("DOMContentLoaded", init);
 
 function init() {
-  setupTabs();
+  setupNavigation();
   setupTheme();
   loadBooks();
   loadSongs();
@@ -49,11 +51,57 @@ function init() {
   setupSettings();
   setupStackControls();
   setupSongControls();
+  setupContextPanel();
+  setupHome();
+  setupPresentationBar();
   setupModal();
   setupPresentation();
   setupAutoUpdateUI();
+  setupSettingsOverlay();
+  renderStack();
+  updateStackVisibility();
+  updateStackBadge();
+  renderHome();
   updateDisplay();
+  updateAppVersion();
+  updateDisplayStatus();
 }
+
+/* ============================================================ Navigation */
+
+function setupNavigation() {
+  document.querySelectorAll(".nav-btn").forEach((btn) => {
+    btn.addEventListener("click", () => switchPage(btn.dataset.page));
+  });
+}
+
+function switchPage(page) {
+  state.currentPage = page;
+  document.querySelectorAll(".nav-btn").forEach((b) => {
+    b.classList.toggle("active", b.dataset.page === page);
+  });
+  document.querySelectorAll(".page").forEach((p) => {
+    p.classList.toggle("active", p.id === "page-" + page);
+  });
+  closeBgPopover();
+  if (page === "home") updateDisplay();
+  if (page === "stack") {
+    renderStack();
+    updateStackVisibility();
+  }
+  updateStackBadge();
+}
+
+function escapeHtml(str) {
+  return String(str == null ? "" : str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/* ============================================================ Theme */
 
 function setupTheme() {
   const toggleBtn = document.getElementById("theme-toggle");
@@ -74,90 +122,136 @@ function setupTheme() {
   }
 }
 
+/* ============================================================ Auto update */
+
 let updateBarTimer = null;
 
 function setupAutoUpdateUI() {
-  const bar = document.getElementById('update-bar');
-  const text = document.getElementById('update-bar-text');
-  const btn = document.getElementById('update-bar-btn');
+  const bar = document.getElementById("update-bar");
+  const text = document.getElementById("update-bar-text");
+  const btn = document.getElementById("update-bar-btn");
+  const sideIndicator = document.getElementById("sidebar-update-indicator");
   const FIFTEEN_DAYS = 15 * 24 * 60 * 60 * 1000;
 
   function hideAfter(ms) {
     clearTimeout(updateBarTimer);
-    updateBarTimer = setTimeout(() => bar.classList.add('hidden'), ms);
+    updateBarTimer = setTimeout(() => bar.classList.add("hidden"), ms);
   }
 
   function saveCheckTime() {
-    localStorage.setItem('lastUpdateCheck', Date.now());
+    localStorage.setItem("lastUpdateCheck", Date.now());
+  }
+
+  function showSideIndicator(inline) {
+    if (!sideIndicator) return;
+    sideIndicator.classList.remove("hidden");
+    if (inline) {
+      sideIndicator.title = "Update v" + inline + " available";
+      sideIndicator.onclick = () => window.api.startUpdateDownload();
+    }
   }
 
   window.api.onUpdateStatus((data) => {
-    console.log('[Update]', data);
+    console.log("[Update]", data);
     clearTimeout(updateBarTimer);
-    bar.classList.remove('hidden');
-    btn.classList.add('hidden');
+    bar.classList.remove("hidden");
+    btn.classList.add("hidden");
     switch (data.status) {
-      case 'checking':
-        text.textContent = 'Checking for updates...';
+      case "checking":
+        text.textContent = "Checking for updates...";
         hideAfter(10000);
         break;
-      case 'available':
-        text.textContent = 'Update v' + data.info.version + ' available';
-        btn.textContent = 'Download';
-        btn.classList.remove('hidden');
+      case "available":
+        text.textContent = "Update v" + data.info.version + " available";
+        btn.textContent = "Download";
+        btn.classList.remove("hidden");
         btn.onclick = () => window.api.startUpdateDownload();
+        showSideIndicator(data.info.version);
         hideAfter(15000);
         saveCheckTime();
         break;
-      case 'downloading':
+      case "downloading":
         const pct = Math.round(data.progress.percent);
-        text.textContent = 'Downloading update... ' + pct + '%';
+        text.textContent = "Downloading update... " + pct + "%";
         break;
-      case 'downloaded':
-        text.textContent = 'Update downloaded — restart to install';
-        btn.textContent = 'Restart & Install';
-        btn.classList.remove('hidden');
+      case "downloaded":
+        text.textContent = "Update downloaded — restart to install";
+        btn.textContent = "Restart & Install";
+        btn.classList.remove("hidden");
         btn.onclick = () => window.api.installUpdate();
         hideAfter(20000);
         break;
-      case 'up-to-date':
-        text.textContent = 'You are up to date!';
+      case "up-to-date":
+        text.textContent = "You are up to date!";
         hideAfter(3000);
         saveCheckTime();
         break;
-      case 'error':
-        text.textContent = 'Update check failed: ' + (data.message || 'unknown error');
+      case "error":
+        text.textContent =
+          "Update check failed: " + (data.message || "unknown error");
         hideAfter(10000);
         saveCheckTime();
         break;
     }
   });
 
-  const lastCheck = localStorage.getItem('lastUpdateCheck');
-  if (!lastCheck || (Date.now() - parseInt(lastCheck)) >= FIFTEEN_DAYS) {
+  if (sideIndicator) {
+    sideIndicator.addEventListener("click", () => window.api.startUpdateDownload());
+  }
+
+  const lastCheck = localStorage.getItem("lastUpdateCheck");
+  if (!lastCheck || Date.now() - parseInt(lastCheck) >= FIFTEEN_DAYS) {
     window.api.checkForUpdates();
   }
 }
 
-document.getElementById('check-updates-btn').addEventListener('click', () => {
+document.getElementById("check-updates-btn").addEventListener("click", () => {
   window.api.checkForUpdates();
-  localStorage.setItem('lastUpdateCheck', Date.now());
+  localStorage.setItem("lastUpdateCheck", Date.now());
 });
 
-function setupTabs() {
-  document.querySelectorAll(".tab-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document
-        .querySelectorAll(".tab-btn")
-        .forEach((b) => b.classList.remove("active"));
-      document
-        .querySelectorAll(".tab-panel")
-        .forEach((p) => p.classList.remove("active"));
-      btn.classList.add("active");
-      document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
-    });
-  });
+async function updateAppVersion() {
+  try {
+    const v = await window.api.getAppVersion();
+    const el = document.getElementById("app-version");
+    const se = document.getElementById("settings-version");
+    if (el) el.textContent = "v" + v;
+    if (se) se.textContent = "v" + v;
+  } catch (e) {
+    /* ignore */
+  }
 }
+
+/* ============================================================ Display status */
+
+async function updateDisplayStatus() {
+  try {
+    const info = await window.api.getDisplayInfo();
+    const presenting = info.presenting;
+    let text;
+    if (presenting) {
+      text = info.hasExternal
+        ? "Presenting • Secondary Monitor"
+        : "Presenting • Primary";
+    } else {
+      text = info.hasExternal
+        ? "Secondary Monitor Ready"
+        : "Presentation Ready";
+    }
+    const st = document.getElementById("status-text");
+    const sd = document.getElementById("status-dot");
+    const ss = document.getElementById("sidebar-status-text");
+    const sdot = document.getElementById("sidebar-status-dot");
+    if (st) st.textContent = text;
+    if (sd) sd.classList.toggle("online", presenting);
+    if (ss) ss.textContent = presenting ? "Presenting" : "Ready";
+    if (sdot) sdot.classList.toggle("online", presenting);
+  } catch (e) {
+    /* ignore */
+  }
+}
+
+/* ============================================================ Books / Bible */
 
 async function loadBooks() {
   books = await window.api.getBooks();
@@ -171,7 +265,12 @@ function renderBookSelect() {
   select.innerHTML = "";
   options.innerHTML = "";
 
-  books.forEach((b) => {
+  const filtered =
+    state.testament === "all"
+      ? books
+      : books.filter((b) => b.testament === state.testament);
+
+  filtered.forEach((b) => {
     const opt = document.createElement("option");
     opt.value = b.id;
     opt.textContent = state.lang === "nepali" ? b.name_nepali : b.name_english;
@@ -190,7 +289,7 @@ function renderBookSelect() {
     options.appendChild(el);
   });
 
-  if (books.length > 0) selectBook(books[0]);
+  if (filtered.length > 0) selectBook(filtered[0]);
 }
 
 function selectBook(book) {
@@ -199,7 +298,8 @@ function selectBook(book) {
   const dropdown = document.getElementById("book-dropdown");
   const filter = document.getElementById("book-filter");
   select.value = book.id;
-  trigger.textContent = state.lang === "nepali" ? book.name_nepali : book.name_english;
+  trigger.textContent =
+    state.lang === "nepali" ? book.name_nepali : book.name_english;
   dropdown.classList.add("hidden");
   filter.value = "";
   state.currentChapter = {
@@ -207,7 +307,19 @@ function selectBook(book) {
     bookId: book.id,
     bookName: book,
   };
+  updateBibleCurrent();
   loadChapters(book.id);
+}
+
+function updateBibleCurrent() {
+  const ch = state.currentChapter;
+  if (!ch || !ch.bookName) return;
+  const bookEl = document.getElementById("bible-current-book");
+  const chapEl = document.getElementById("bible-current-chapter");
+  bookEl.textContent =
+    state.lang === "nepali" ? ch.bookName.name_nepali : ch.bookName.name_english;
+  chapEl.textContent = ch.chapter ? "Chapter " + ch.chapter : "Select chapter";
+  document.getElementById("book-select").value = ch.bookId;
 }
 
 function filterSelectOptions(optionsContainer, query) {
@@ -269,6 +381,7 @@ function selectChapter(chapter) {
     bookName: bk,
     chapter: chapter,
   };
+  updateBibleCurrent();
   clearOverlaySelection();
   loadBrowserVerses(bookId, chapter);
 }
@@ -282,6 +395,11 @@ function setupBibleBrowser() {
   const chapterDropdown = document.getElementById("chapter-dropdown");
   const chapterFilter = document.getElementById("chapter-filter");
   const chapterOptions = document.getElementById("chapter-options");
+
+  document.getElementById("testament-filter").addEventListener("change", (e) => {
+    state.testament = e.target.value;
+    renderBookSelect();
+  });
 
   bookTrigger.addEventListener("click", () => {
     const isOpen = !bookDropdown.classList.contains("hidden");
@@ -319,10 +437,7 @@ function setupBibleBrowser() {
   }
 
   document.addEventListener("mousedown", (e) => {
-    if (
-      !bookTrigger.contains(e.target) &&
-      !bookDropdown.contains(e.target)
-    ) {
+    if (!bookTrigger.contains(e.target) && !bookDropdown.contains(e.target)) {
       bookDropdown.classList.add("hidden");
     }
     if (
@@ -335,7 +450,11 @@ function setupBibleBrowser() {
 
   function getBookLabel(bookId) {
     const b = books.find((bk) => bk.id === bookId);
-    return b ? (state.lang === "nepali" ? b.name_nepali : b.name_english) : "";
+    return b
+      ? state.lang === "nepali"
+        ? b.name_nepali
+        : b.name_english
+      : "";
   }
 
   async function refreshPresentationVerses() {
@@ -370,7 +489,7 @@ function setupBibleBrowser() {
       state.chapterVerses = verses;
       const items = verses.map((v) => ({
         type: "verse",
-        reference: `${bookLabel} ${chapter}:${v.verse}`,
+        reference: `${getBookLabel(bookId)} ${chapter}:${v.verse}`,
         text: v.text || "",
         textEn: state.dualMode ? v.textEn || "" : null,
       }));
@@ -444,14 +563,13 @@ function setupBibleBrowser() {
     renderStack();
     updateBrowserStackHighlights();
     updateDisplay();
+    updateContextPanel();
     if (presentationOpen) presentStack();
   }
 
   document.querySelectorAll(".lang-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
-      document
-        .querySelectorAll(".lang-btn")
-        .forEach((b) => b.classList.remove("active"));
+      document.querySelectorAll(".lang-btn").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       state.lang = btn.dataset.lang;
       renderBookSelect();
@@ -507,8 +625,7 @@ async function loadBrowserVerses(bookId, chapter) {
     el.dataset.index = i;
 
     const isStacked = state.verseStack.some(
-      (s) =>
-        s.bookId === bookId && s.chapter === chapter && s.verse === v.verse,
+      (s) => s.bookId === bookId && s.chapter === chapter && s.verse === v.verse,
     );
     if (isStacked) el.classList.add("stacked");
 
@@ -537,56 +654,116 @@ async function loadBrowserVerses(bookId, chapter) {
   });
 }
 
+function buildVerseItems(chapter, bookLabel) {
+  return state.chapterVerses.map((v) => {
+    const base = {
+      type: "verse",
+      reference: `${bookLabel} ${chapter}:${v.verse}`,
+    };
+    if (state.dualMode) {
+      return { ...base, text: v.text || "", textEn: v.textEn || "" };
+    }
+    return { ...base, text: v.text, textEn: null };
+  });
+}
+
 function showSingleVerse(bookId, chapter, verse, bookLabel) {
   state.songActive = false;
   state.selectedSongId = null;
 
-  const items = state.chapterVerses.map((v) => {
-    const base = {
-      type: "verse",
-      reference: `${bookLabel} ${chapter}:${v.verse}`,
-    };
-    if (state.dualMode) {
-      return { ...base, text: v.text || "", textEn: v.textEn || "" };
-    }
-    return { ...base, text: v.text, textEn: null };
-  });
-
-  const startIdx = state.chapterVerses.findIndex(
-    (v) => v.verse === verse.verse,
-  );
-  state.verseIndex = startIdx >= 0 ? startIdx : 0;
-  state.singleVerseItems = items;
-
-  updateDisplay();
-  presentItems(items, false, state.verseIndex);
-}
-
-function selectVerseForOverlay(bookId, chapter, verse, bookLabel, el) {
-  document.querySelectorAll('.browser-verse.selected').forEach((e) => e.classList.remove('selected'));
-  el.classList.add('selected');
-
-  state.songActive = false;
-  state.selectedSongId = null;
-
-  const items = state.chapterVerses.map((v) => {
-    const base = {
-      type: "verse",
-      reference: `${bookLabel} ${chapter}:${v.verse}`,
-    };
-    if (state.dualMode) {
-      return { ...base, text: v.text || "", textEn: v.textEn || "" };
-    }
-    return { ...base, text: v.text, textEn: null };
-  });
-
+  const items = buildVerseItems(chapter, bookLabel);
   const startIdx = state.chapterVerses.findIndex((v) => v.verse === verse.verse);
   state.verseIndex = startIdx >= 0 ? startIdx : 0;
   state.singleVerseItems = items;
 
   updateDisplay();
-  document.getElementById('overlay-send-btn').classList.remove('hidden');
-  document.getElementById('remove-overlay-btn').classList.add('hidden');
+  presentItems(items, false, state.verseIndex);
+  recordRecent(
+    `${bookLabel} ${chapter}:${verse.verse}`,
+    "Bible Verse",
+    "verse",
+    items,
+    false,
+    false,
+  );
+}
+
+function selectVerseForOverlay(bookId, chapter, verse, bookLabel, el) {
+  document
+    .querySelectorAll(".browser-verse.selected")
+    .forEach((e) => e.classList.remove("selected"));
+  el.classList.add("selected");
+
+  state.songActive = false;
+  state.selectedSongId = null;
+
+  const items = buildVerseItems(chapter, bookLabel);
+  const startIdx = state.chapterVerses.findIndex((v) => v.verse === verse.verse);
+  state.verseIndex = startIdx >= 0 ? startIdx : 0;
+  state.singleVerseItems = items;
+
+  state.selectedVerseContext = { bookId, chapter, verse, bookLabel };
+  updateContextPanel();
+  updateDisplay();
+  document.getElementById("overlay-send-btn").classList.remove("hidden");
+  document.getElementById("remove-overlay-btn").classList.add("hidden");
+}
+
+/* ============================================================ Context panel */
+
+function setupContextPanel() {
+  document.getElementById("panel-present-btn").addEventListener("click", () => {
+    const ctx = state.selectedVerseContext;
+    if (ctx) showSingleVerse(ctx.bookId, ctx.chapter, ctx.verse, ctx.bookLabel);
+  });
+  document.getElementById("panel-stack-btn").addEventListener("click", () => {
+    const ctx = state.selectedVerseContext;
+    if (ctx) toggleStackVerse(ctx.bookId, ctx.chapter, ctx.verse, ctx.bookLabel);
+  });
+  document.getElementById("panel-overlay-btn").addEventListener("click", () => {
+    const ctx = state.selectedVerseContext;
+    if (ctx) sendSelectedToOverlay();
+  });
+}
+
+function updateContextPanel() {
+  const refEl = document.getElementById("selected-ref");
+  const npEl = document.getElementById("selected-np");
+  const enEl = document.getElementById("selected-en");
+  const statusEl = document.getElementById("selected-stack-status");
+  const presentBtn = document.getElementById("panel-present-btn");
+  const stackBtn = document.getElementById("panel-stack-btn");
+  const overlayBtn = document.getElementById("panel-overlay-btn");
+  const ctx = state.selectedVerseContext;
+
+  if (!ctx || !ctx.verse) {
+    refEl.textContent = "No verse selected";
+    npEl.textContent = "";
+    enEl.textContent = "";
+    enEl.classList.add("hidden");
+    statusEl.classList.add("hidden");
+    presentBtn.disabled = true;
+    stackBtn.disabled = true;
+    overlayBtn.disabled = true;
+    return;
+  }
+
+  const { bookId, chapter, verse, bookLabel } = ctx;
+  refEl.textContent = `${bookLabel} ${chapter}:${verse.verse}`;
+  npEl.textContent = verse.text || verse.textEn || "";
+  enEl.textContent = verse.textEn || "";
+  enEl.classList.toggle("hidden", !verse.textEn);
+
+  const isStacked = state.verseStack.some(
+    (s) =>
+      s.bookId === bookId && s.chapter === chapter && s.verse === verse.verse,
+  );
+  statusEl.classList.toggle("hidden", !isStacked);
+
+  presentBtn.disabled = false;
+  stackBtn.disabled = false;
+  overlayBtn.disabled = false;
+  stackBtn.textContent = isStacked ? "Remove from Stack" : "Add to Stack";
 }
 
 async function sendSelectedToOverlay() {
@@ -598,19 +775,49 @@ async function sendSelectedToOverlay() {
     }
     updateOverlayContent();
   }
-  document.getElementById('overlay-send-btn').classList.add('hidden');
-  document.getElementById('remove-overlay-btn').classList.remove('hidden');
-  document.querySelectorAll('.browser-verse.selected').forEach((e) => e.classList.remove('selected'));
+  document.getElementById("overlay-send-btn").classList.add("hidden");
+  document.getElementById("remove-overlay-btn").classList.remove("hidden");
+  document
+    .querySelectorAll(".browser-verse.selected")
+    .forEach((e) => e.classList.remove("selected"));
 }
 
 function clearOverlaySelection() {
-  state.overlayVerse = null;
-  document.getElementById('overlay-send-btn').classList.add('hidden');
-  document.querySelectorAll('.browser-verse.selected').forEach((e) => e.classList.remove('selected'));
+  state.selectedVerseContext = null;
+  updateContextPanel();
+  document.getElementById("overlay-send-btn").classList.add("hidden");
+  document
+    .querySelectorAll(".browser-verse.selected")
+    .forEach((e) => e.classList.remove("selected"));
+}
+
+/* ============================================================ Display / preview */
+
+function renderLivePreviewBg() {
+  const area = document.getElementById("display-area");
+  if (!area) return;
+  if (state.settings.bgType === "image" && state.settings.bgPath) {
+    const url = "file:///" + state.settings.bgPath.replace(/\\/g, "/");
+    area.style.backgroundImage = `url('${url}')`;
+  } else {
+    area.style.backgroundImage = "";
+    area.style.background = "linear-gradient(160deg, #0b0d12, #151a24)";
+  }
+}
+
+function syncControlBar() {
+  const fv = document.getElementById("ctrl-font-value");
+  const sv = document.getElementById("ctrl-spacing-value");
+  if (fv) fv.textContent = state.settings.fontSize;
+  if (sv) sv.textContent = state.settings.verseSpacing;
+  document
+    .querySelectorAll("#align-group button")
+    .forEach((b) => b.classList.toggle("active", b.dataset.align === state.settings.textAlign));
 }
 
 function updateDisplay() {
   const area = document.getElementById("display-area");
+  if (!area) return;
   area.innerHTML = "";
 
   if (state.songActive && state.songItems && state.songItems.length > 0) {
@@ -699,14 +906,41 @@ function updateDisplay() {
     });
   } else {
     area.innerHTML =
-      '<div class="display-empty">Double-click a verse or present stack</div>';
+      '<div class="display-empty">Select content to preview</div>';
   }
+
+  const pnav = document.getElementById("preview-nav");
+  if (pnav) {
+    if (state.singleVerseItems && state.singleVerseItems.length > 1) {
+      pnav.textContent = `${state.verseIndex + 1} / ${state.singleVerseItems.length}`;
+    } else if (state.songItems && state.songItems.length > 1) {
+      pnav.textContent = `${state.verseIndex + 1} / ${state.songItems.length}`;
+    } else {
+      pnav.textContent = "";
+    }
+  }
+  renderLivePreviewBg();
+  syncControlBar();
+}
+
+/* ============================================================ Stack */
+
+function updateStackVisibility() {
+  const has = state.verseStack.length > 0;
+  const section = document.getElementById("stack-section");
+  const empty = document.getElementById("stack-empty");
+  if (section) section.style.display = has ? "" : "none";
+  if (empty) empty.style.display = has ? "none" : "";
+}
+
+function updateStackBadge() {
+  const badge = document.getElementById("stack-count-dot");
+  if (badge) badge.classList.toggle("hidden", state.verseStack.length === 0);
 }
 
 function toggleStackVerse(bookId, chapter, verse, bookLabel) {
   const existing = state.verseStack.findIndex(
-    (s) =>
-      s.bookId === bookId && s.chapter === chapter && s.verse === verse.verse,
+    (s) => s.bookId === bookId && s.chapter === chapter && s.verse === verse.verse,
   );
   if (existing >= 0) {
     state.verseStack.splice(existing, 1);
@@ -725,12 +959,9 @@ function toggleStackVerse(bookId, chapter, verse, bookLabel) {
   renderStack();
   updateBrowserStackHighlights();
   updateDisplay();
-
-  if (state.verseStack.length > 0) {
-    document.getElementById("stack-section").style.display = "block";
-  } else {
-    document.getElementById("stack-section").style.display = "none";
-  }
+  updateContextPanel();
+  updateStackVisibility();
+  updateStackBadge();
 }
 
 function updateBrowserStackHighlights() {
@@ -751,28 +982,76 @@ function updateBrowserStackHighlights() {
 
 function renderStack() {
   const container = document.getElementById("stack-list");
+  if (!container) return;
   container.innerHTML = "";
+
+  const countEl = document.getElementById("stack-count");
+  if (countEl) {
+    countEl.textContent =
+      state.verseStack.length +
+      (state.verseStack.length === 1 ? " verse" : " verses");
+  }
+
+  let dragIndex = null;
+
   state.verseStack.forEach((item, i) => {
-    const chip = document.createElement("div");
-    chip.className = "verse-chip";
-    chip.innerHTML = `
-      <div>
-        <div class="verse-text">${item.text}</div>
-        <div class="verse-ref">${item.reference}</div>
+    const el = document.createElement("div");
+    el.className = "stack-item";
+    el.draggable = true;
+    el.dataset.index = i;
+    el.innerHTML = `
+      <span class="stack-handle" title="Drag to reorder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="6" r="1.2" /><circle cx="15" cy="6" r="1.2" />
+          <circle cx="9" cy="12" r="1.2" /><circle cx="15" cy="12" r="1.2" />
+          <circle cx="9" cy="18" r="1.2" /><circle cx="15" cy="18" r="1.2" />
+        </svg>
+      </span>
+      <div class="stack-content">
+        <div class="stack-ref">${escapeHtml(item.reference || "")}</div>
+        <div class="stack-text">${escapeHtml(item.text || item.textEn || "")}</div>
       </div>
       <button class="remove-verse" data-index="${i}">&times;</button>
     `;
-    chip.querySelector(".remove-verse").addEventListener("click", () => {
+
+    el.querySelector(".remove-verse").addEventListener("click", () => {
       state.verseStack.splice(i, 1);
       renderStack();
       updateBrowserStackHighlights();
       updateDisplay();
-      if (state.verseStack.length === 0) {
-        document.getElementById("stack-section").style.display = "none";
-      }
+      updateContextPanel();
+      updateStackVisibility();
+      updateStackBadge();
     });
-    container.appendChild(chip);
+
+    el.addEventListener("dragstart", (e) => {
+      dragIndex = i;
+      el.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+    });
+    el.addEventListener("dragover", (e) => e.preventDefault());
+    el.addEventListener("dragend", () => {
+      dragIndex = null;
+      el.classList.remove("dragging");
+    });
+    el.addEventListener("drop", (e) => {
+      e.preventDefault();
+      el.classList.remove("dragging");
+      if (dragIndex !== null && dragIndex !== i) {
+        const [moved] = state.verseStack.splice(dragIndex, 1);
+        state.verseStack.splice(i, 0, moved);
+        renderStack();
+        updateBrowserStackHighlights();
+        updateDisplay();
+      }
+      dragIndex = null;
+    });
+
+    container.appendChild(el);
   });
+
+  updateStackVisibility();
+  updateStackBadge();
 }
 
 function setupStackControls() {
@@ -789,7 +1068,9 @@ function setupStackControls() {
     renderStack();
     updateBrowserStackHighlights();
     updateDisplay();
-    document.getElementById("stack-section").style.display = "none";
+    updateStackVisibility();
+    updateStackBadge();
+    updateContextPanel();
   });
 }
 
@@ -801,6 +1082,14 @@ async function presentStack() {
     reference: v.reference,
   }));
   state.verseIndex = 0;
+  recordRecent(
+    "Presentation Stack",
+    `${items.length} verse${items.length === 1 ? "" : "s"}`,
+    "stack",
+    items,
+    false,
+    true,
+  );
   await presentItems(items, false, 0, true);
 }
 
@@ -811,7 +1100,7 @@ function navigateChapter(direction) {
   state.verseIndex = newIdx;
   clearOverlaySelection();
   updateDisplay();
-  presentItems(state.singleVerseItems, false, state.verseIndex);
+  presentItems(state.singleVerseItems, false, state.verseIndex, false, true);
 }
 
 function navigateSong(direction) {
@@ -821,25 +1110,53 @@ function navigateSong(direction) {
   state.verseIndex = newIdx;
   clearOverlaySelection();
   updateDisplay();
-  presentItems(state.songItems, true, state.verseIndex);
+  presentItems(state.songItems, true, state.verseIndex, false, true);
   highlightSongChunk(newIdx);
 }
 
 function pickRandomUserBg() {
   if (state.settings.bgPaths && state.settings.bgPaths.length > 1) {
-    const path = state.settings.bgPaths[Math.floor(Math.random() * state.settings.bgPaths.length)];
+    const path =
+      state.settings.bgPaths[
+        Math.floor(Math.random() * state.settings.bgPaths.length)
+      ];
     state.settings.bgPath = path;
     state.settings.bgType = "image";
   }
 }
 
-async function presentItems(items, isSong, startIndex, isStack) {
-  if (state.settings.theme === "random") {
-    await applyThemeBackground("random");
-  } else if (!state.settings.theme && state.settings.bgPaths.length > 1) {
-    pickRandomUserBg();
-  }
+async function presentItems(items, isSong, startIndex, isStack, preserveBg) {
+  console.info(
+    "[presentItems] preserveBg=",
+    preserveBg,
+    "theme=",
+    state.settings.theme,
+    "bgPath=",
+    state.settings.bgPath,
+  );
   const pState = await window.api.getPresentationState();
+  if (preserveBg === undefined && pState.isOpen) {
+    console.info(
+      "[presentItems] !!! preserveBg was UNDEFINED but window ALREADY OPEN -> clamping to NAVIGATION (preserveBg=true)",
+    );
+    preserveBg = true;
+  }
+  if (preserveBg === undefined) {
+    console.info(
+      "[presentItems] preserveBg is UNDEFINED + window closed -> this is a FRESH OPEN, caller stack:\n" +
+        new Error().stack.split("\n").slice(1, 5).join("\n"),
+    );
+  }
+  if (!preserveBg) {
+    console.info("[presentItems] => re-randomizing background (fresh open only)");
+    if (state.settings.theme === "random") {
+      await applyThemeBackground("random");
+    } else if (!state.settings.theme && state.settings.bgPaths.length > 1) {
+      pickRandomUserBg();
+    }
+  } else {
+    console.info("[presentItems] => preserveBg, NOT re-randomizing");
+  }
   const data = {
     items: items,
     settings: { ...state.settings },
@@ -858,7 +1175,10 @@ async function presentItems(items, isSong, startIndex, isStack) {
     await window.api.openPresentation();
     setTimeout(() => window.api.sendToPresentation(data), 300);
   }
+  updateDisplayStatus();
 }
+
+/* ============================================================ Search */
 
 function setupSearch() {
   document.getElementById("search-btn").addEventListener("click", async () => {
@@ -909,12 +1229,14 @@ function setupSearch() {
       }));
     }
 
-    // Show results in the browser area
     const container = document.getElementById("verse-browser");
     container.innerHTML =
-      '<div class="search-header">Search results for "' +
-      keyword +
-      '" <button id="clear-search-btn" class="btn-small">Clear</button></div>';
+      '<div class="search-header">' +
+      results.length +
+      " results for &quot;" +
+      escapeHtml(keyword) +
+      '&quot; <button id="clear-search-btn" class="btn-small">Clear</button></div>';
+
     results.forEach((item, i) => {
       const el = document.createElement("div");
       el.className = "browser-verse";
@@ -939,6 +1261,14 @@ function setupSearch() {
         state.verseIndex = i;
         updateDisplay();
         presentItems(results, false, state.verseIndex);
+        recordRecent(
+          item.reference,
+          "Bible Verse",
+          "verse",
+          results,
+          false,
+          false,
+        );
       });
       container.appendChild(el);
     });
@@ -966,13 +1296,20 @@ function setupSearch() {
   });
 
   document.getElementById("song-search").addEventListener("input", (e) => {
-    renderSongList(e.target.value, document.getElementById("song-category-filter").value);
+    renderSongList(
+      e.target.value,
+      document.getElementById("song-category-filter").value,
+    );
   });
 
-  document.getElementById("song-category-filter").addEventListener("change", (e) => {
-    renderSongList(document.getElementById("song-search").value, e.target.value);
-  });
+  document
+    .getElementById("song-category-filter")
+    .addEventListener("change", (e) => {
+      renderSongList(document.getElementById("song-search").value, e.target.value);
+    });
 }
+
+/* ============================================================ Songs */
 
 async function loadSongs() {
   songs = await window.api.getAllSongs();
@@ -1007,12 +1344,12 @@ function renderSongList(filter, category) {
           .filter(Boolean)
       : [];
     const tagsHtml = tags.length
-      ? `<div class="song-tags">${tags.map((t) => `<span class="tag-chip">${t}</span>`).join("")}</div>`
+      ? `<div class="song-tags">${tags.map((t) => `<span class="tag-chip">${escapeHtml(t)}</span>`).join("")}</div>`
       : "";
     el.innerHTML = `
       <div>
-        <div class="song-title">${s.title}</div>
-        <div class="song-meta">${s.category || ""} ${s.language ? "| " + s.language : ""}</div>
+        <div class="song-title">${escapeHtml(s.title)}</div>
+        <div class="song-meta">${escapeHtml(s.category || "")}${s.language ? " | " + escapeHtml(s.language) : ""}${s.author ? " | " + escapeHtml(s.author) : ""}</div>
         ${tagsHtml}
       </div>
     `;
@@ -1020,6 +1357,10 @@ function renderSongList(filter, category) {
     el.addEventListener("dblclick", () => displaySong(s.id));
     container.appendChild(el);
   });
+  if (!list.length) {
+    container.innerHTML =
+      '<div class="lyrics-placeholder" style="padding:16px">No songs match</div>';
+  }
 }
 
 function populateCategoryFilter() {
@@ -1029,9 +1370,41 @@ function populateCategoryFilter() {
   const sel = document.getElementById("song-category-filter");
   const cur = sel.value;
   sel.innerHTML =
-    '<option value="">All Categories</option>' +
+    '<option value="">All</option>' +
     cats.map((c) => `<option value="${c}">${c}</option>`).join("");
   sel.value = cur || "";
+  renderSongFilters();
+}
+
+function renderSongFilters() {
+  const wrap = document.getElementById("song-filters");
+  if (!wrap) return;
+  const cats = [...new Set(songs.map((s) => s.category).filter(Boolean))].sort();
+  const currentCat = document.getElementById("song-category-filter").value;
+
+  const make = (value, label) => {
+    const chip = document.createElement("button");
+    chip.className = "song-filter-chip" + (currentCat === value ? " active" : "");
+    chip.textContent = label;
+    chip.addEventListener("click", () => {
+      document.getElementById("song-category-filter").value = value;
+      renderSongFilters();
+      renderSongList(
+        document.getElementById("song-search").value,
+        value,
+      );
+    });
+    wrap.appendChild(chip);
+  };
+
+  make("", "All");
+  cats.forEach((c) => make(c, c));
+
+  const select = document.getElementById("song-category-filter");
+  select.onchange = () => {
+    renderSongFilters();
+    renderSongList(document.getElementById("song-search").value, select.value);
+  };
 }
 
 async function showLyricsPreview(id) {
@@ -1039,8 +1412,32 @@ async function showLyricsPreview(id) {
   previewSongId = id;
   document.querySelectorAll(".song-item").forEach((el) => el.classList.remove("active"));
   const lyrics = await window.api.getSongLyrics(id);
-  previewTitle = lyrics.title;
   previewChunks = lyrics.lyrics.split(/\n\n+/).filter((v) => v.trim());
+
+  const infoPanel = document.getElementById("song-info-panel");
+  const infoTitle = document.getElementById("song-info-title");
+  const infoCategory = document.getElementById("song-info-category");
+  const infoLanguage = document.getElementById("song-info-language");
+  const infoAuthor = document.getElementById("song-info-author");
+  const infoTags = document.getElementById("song-info-tags");
+
+  infoPanel.classList.remove("hidden");
+  infoTitle.textContent = lyrics.title;
+  infoCategory.textContent = lyrics.category ? "Category: " + lyrics.category : "";
+  infoLanguage.textContent = lyrics.language ? "Language: " + lyrics.language : "";
+  infoAuthor.textContent = lyrics.author ? "Author: " + lyrics.author : "";
+  infoTags.innerHTML = "";
+
+  const tagList = (lyrics.tags || "")
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+  tagList.forEach((t) => {
+    const chip = document.createElement("span");
+    chip.className = "tag-chip";
+    chip.textContent = t;
+    infoTags.appendChild(chip);
+  });
 
   const container = document.getElementById("song-lyrics-preview");
   container.innerHTML = "";
@@ -1059,7 +1456,6 @@ async function showLyricsPreview(id) {
       el.querySelector(".song-title")?.textContent === lyrics.title,
     );
   });
-  state.currentSongId = id;
 }
 
 function onChunkClick(index) {
@@ -1106,7 +1502,10 @@ async function displaySong(id) {
   updateDisplay();
   presentItems(items, true, 0);
   highlightSongChunk(0);
+  recordRecent(data.title, "Song", "song", items, true, false);
 }
+
+/* ============================================================ Settings */
 
 function setupSettings() {
   const fontSize = document.getElementById("font-size");
@@ -1149,50 +1548,13 @@ function setupSettings() {
 
   document
     .getElementById("select-image-btn")
-    .addEventListener("click", async () => {
-      const paths = await window.api.selectFile("image");
-      if (paths && paths.length > 0) {
-        state.settings.theme = "";
-        document.getElementById("theme-select").value = "";
-        state.settings.bgType = "image";
-        state.settings.bgPaths = paths;
-        state.settings.bgPath = paths[Math.floor(Math.random() * paths.length)];
-        const fileUrl = "file:///" + state.settings.bgPath.replace(/\\/g, "/");
-        const preview = document.getElementById("bg-preview");
-        preview.style.backgroundImage = `url('${fileUrl}')`;
-        preview.classList.add("has-bg");
-        preview.textContent = paths.length > 1 ? paths.length + " images" : "";
-        resendToPresentation();
-      }
-    });
-
+    .addEventListener("click", selectImageDialog);
   document
     .getElementById("select-video-btn")
-    .addEventListener("click", async () => {
-      const path = await window.api.selectFile("video");
-      if (path) {
-        state.settings.theme = "";
-        document.getElementById("theme-select").value = "";
-        state.settings.bgType = "video";
-        state.settings.bgPath = path;
-        document.getElementById("bg-preview").style.background = "#1e293b";
-        document.getElementById("bg-preview").classList.add("has-bg");
-        document.getElementById("bg-preview").textContent = "Video selected";
-        resendToPresentation();
-      }
-    });
-
-  document.getElementById("clear-bg-btn").addEventListener("click", () => {
-    state.settings.theme = "";
-    state.settings.bgType = null;
-    state.settings.bgPath = null;
-    state.settings.bgPaths = [];
-    document.getElementById("theme-select").value = "";
-    document.getElementById("bg-preview").style.backgroundImage = "";
-    document.getElementById("bg-preview").classList.remove("has-bg");
-    document.getElementById("bg-preview").textContent = "";
-    resendToPresentation();
-  });
+    .addEventListener("click", selectVideoDialog);
+  document
+    .getElementById("clear-bg-btn")
+    .addEventListener("click", clearBackground);
 
   document.getElementById("bg-fit").addEventListener("change", (e) => {
     state.settings.bgFit = e.target.value;
@@ -1212,22 +1574,18 @@ function setupSettings() {
     resendToPresentation();
   });
 
-  document
-    .getElementById("theme-select")
-    .addEventListener("change", async (e) => {
-      state.settings.theme = e.target.value;
-      if (state.settings.theme !== "random") {
-        await applyThemeBackground(state.settings.theme);
-      }
-      resendToPresentation();
-    });
+  document.getElementById("theme-select").addEventListener("change", async (e) => {
+    state.settings.theme = e.target.value;
+    if (state.settings.theme !== "random") {
+      await applyThemeBackground(state.settings.theme);
+    }
+    resendToPresentation();
+  });
 
-  document
-    .getElementById("overlay-position")
-    .addEventListener("change", async (e) => {
-      state.settings.overlayPosition = e.target.value;
-      await window.api.setOverlayPosition(e.target.value);
-    });
+  document.getElementById("overlay-position").addEventListener("change", async (e) => {
+    state.settings.overlayPosition = e.target.value;
+    await window.api.setOverlayPosition(e.target.value);
+  });
 
   const ofs = document.getElementById("overlay-font-size");
   const ofsLabel = document.getElementById("overlay-font-size-label");
@@ -1239,15 +1597,203 @@ function setupSettings() {
     });
   });
 
-  document.getElementById('overlay-send-btn').addEventListener('click', sendSelectedToOverlay);
+  document
+    .getElementById("overlay-send-btn")
+    .addEventListener("click", sendSelectedToOverlay);
 
-  document.getElementById('remove-overlay-btn').addEventListener('click', async () => {
-    if (state.overlayOpen) {
-      await window.api.closeOverlay();
-      state.overlayOpen = false;
-      document.getElementById('remove-overlay-btn').classList.add('hidden');
+  document
+    .getElementById("remove-overlay-btn")
+    .addEventListener("click", async () => {
+      if (state.overlayOpen) {
+        await window.api.closeOverlay();
+        state.overlayOpen = false;
+        document.getElementById("remove-overlay-btn").classList.add("hidden");
+      }
+    });
+
+  // Data transfer handlers
+  const showStatus = (msg, isError = false) => {
+    const el = document.getElementById("transfer-status");
+    el.textContent = msg;
+    el.className = "transfer-status " + (isError ? "error" : "success");
+    el.classList.remove("hidden");
+    setTimeout(() => el.classList.add("hidden"), 5000);
+  };
+
+  document.getElementById("export-songs-btn").addEventListener("click", async () => {
+    try {
+      const data = await window.api.exportSongs();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `songs-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showStatus(`Exported ${data.songs.length} songs`);
+    } catch (e) {
+      showStatus("Export failed: " + e.message, true);
     }
   });
+
+  document.getElementById("import-songs-btn").addEventListener("click", async () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        const result = await window.api.importSongs(data);
+        if (result.success) {
+          showStatus(`Imported ${result.count} songs`);
+          updateDisplay();
+          sendSettings();
+        } else {
+          showStatus("Import failed: " + result.error, true);
+        }
+      } catch (e) {
+        showStatus("Import failed: " + e.message, true);
+      }
+    };
+    input.click();
+  });
+
+  document.getElementById("export-db-btn").addEventListener("click", async () => {
+    try {
+      const data = await window.api.exportDatabase();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `database-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showStatus("Exported full database");
+    } catch (e) {
+      showStatus("Export failed: " + e.message, true);
+    }
+  });
+
+  document.getElementById("import-db-btn").addEventListener("click", async () => {
+    if (!confirm("This will REPLACE all data (songs, settings, recent, stack). Continue?")) return;
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        const result = await window.api.importDatabase(data);
+        if (result.success) {
+          showStatus("Database imported successfully - reloading...");
+          setTimeout(() => location.reload(), 1500);
+        } else {
+          showStatus("Import failed: " + result.error, true);
+        }
+      } catch (e) {
+        showStatus("Import failed: " + e.message, true);
+      }
+    };
+    input.click();
+  });
+}
+
+function setupSettingsOverlay() {
+  const show = document.getElementById("settings-overlay-btn");
+  if (show) {
+    show.addEventListener("click", () => {
+      if (!state.overlayOpen) {
+        window.api.openOverlay().then(() => {
+          window.api.setOverlayPosition(state.settings.overlayPosition);
+          state.overlayOpen = true;
+          updateOverlayContent();
+        });
+      } else {
+        updateOverlayContent();
+      }
+    });
+  }
+  const close = document.getElementById("settings-overlay-close-btn");
+  if (close) {
+    close.addEventListener("click", async () => {
+      if (state.overlayOpen) {
+        await window.api.closeOverlay();
+        state.overlayOpen = false;
+      }
+    });
+  }
+}
+
+async function selectImageDialog() {
+  const paths = await window.api.selectFile("image");
+  if (paths && paths.length > 0) {
+    state.settings.theme = "";
+    document.getElementById("theme-select").value = "";
+    state.settings.bgType = "image";
+    state.settings.bgPaths = paths;
+    state.settings.bgPath = paths[Math.floor(Math.random() * paths.length)];
+    updateBgPreview();
+    resendToPresentation();
+  }
+}
+
+async function selectVideoDialog() {
+  const path = await window.api.selectFile("video");
+  if (path) {
+    state.settings.theme = "";
+    document.getElementById("theme-select").value = "";
+    state.settings.bgType = "video";
+    state.settings.bgPath = path;
+    updateBgPreview();
+    resendToPresentation();
+  }
+}
+
+function clearBackground() {
+  state.settings.theme = "";
+  state.settings.bgType = null;
+  state.settings.bgPath = null;
+  state.settings.bgPaths = [];
+  document.getElementById("theme-select").value = "";
+  updateBgPreview();
+  resendToPresentation();
+}
+
+function updateBgPreview() {
+  const preview = document.getElementById("bg-preview");
+  if (!preview) return;
+  preview.style.backgroundImage = "";
+  preview.classList.remove("has-bg");
+  preview.textContent = "";
+  if (state.settings.bgType === "image" && state.settings.bgPath) {
+    const fileUrl = "file:///" + state.settings.bgPath.replace(/\\/g, "/");
+    preview.style.backgroundImage = `url('${fileUrl}')`;
+    preview.classList.add("has-bg");
+    preview.textContent =
+      state.settings.bgPaths.length > 1
+        ? state.settings.bgPaths.length + " images"
+        : "";
+  } else if (state.settings.bgType === "video" && state.settings.bgPath) {
+    const fileUrl = "file:///" + state.settings.bgPath.replace(/\\/g, "/");
+    preview.innerHTML = "";
+    preview.style.background = "#1d2330";
+    preview.classList.add("has-bg");
+    const vid = document.createElement("video");
+    vid.src = fileUrl;
+    vid.muted = true;
+    vid.loop = true;
+    vid.autoplay = true;
+    vid.playsInline = true;
+    vid.style.width = "100%";
+    vid.style.height = "100%";
+    vid.style.objectFit = "cover";
+    preview.appendChild(vid);
+  }
 }
 
 const THEME_ENTRIES = [
@@ -1277,20 +1823,14 @@ function getThemeFile(theme) {
 
 async function applyThemeBackground(theme) {
   const file = getThemeFile(theme);
-  const preview = document.getElementById("bg-preview");
   if (file) {
     state.settings.bgType = "image";
     state.settings.bgPath = await window.api.getAssetPath(file);
-    const fileUrl = "file:///" + state.settings.bgPath.replace(/\\/g, "/");
-    preview.style.backgroundImage = `url('${fileUrl}')`;
-    preview.classList.add("has-bg");
-    preview.textContent = "";
+    updateBgPreview();
   } else {
     document.getElementById("theme-select").value = "";
     if (!state.settings.bgPath) {
-      preview.style.backgroundImage = "";
-      preview.classList.remove("has-bg");
-      preview.textContent = "";
+      updateBgPreview();
     }
   }
 }
@@ -1313,6 +1853,8 @@ async function updateOverlayContent() {
     fontSize: state.settings.overlayFontSize,
   });
 }
+
+/* ============================================================ Song controls / CRUD */
 
 function setupSongControls() {
   document
@@ -1398,6 +1940,208 @@ function setupModal() {
   });
 }
 
+/* ============================================================ Home */
+
+function setupHome() {
+  document
+    .getElementById("browse-bible-card")
+    .addEventListener("click", () => switchPage("bible"));
+  document
+    .getElementById("browse-songs-card")
+    .addEventListener("click", () => switchPage("songs"));
+  document
+    .getElementById("stack-mode-card")
+    .addEventListener("click", () => switchPage("stack"));
+  document
+    .getElementById("quick-present-card")
+    .addEventListener("click", quickPresent);
+}
+
+function renderHome() {
+  renderRecent();
+}
+
+function getRecent() {
+  try {
+    return JSON.parse(localStorage.getItem(RECENT_KEY)) || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveRecent(list) {
+  localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, MAX_RECENT)));
+}
+
+function recordRecent(label, sub, type, items, isSong, isStack) {
+  const list = getRecent().filter(
+    (r) => !(r.label === label && r.type === type),
+  );
+  list.unshift({ label, sub, type, items, isSong: !!isSong, isStack: !!isStack, ts: Date.now() });
+  saveRecent(list);
+  renderRecent();
+}
+
+function renderRecent() {
+  const wrap = document.getElementById("recent-list");
+  if (!wrap) return;
+  const list = getRecent();
+  if (!list.length) {
+    wrap.innerHTML = '<div class="recent-empty">Nothing presented yet</div>';
+    return;
+  }
+  wrap.innerHTML = "";
+  list.forEach((r) => {
+    const row = document.createElement("button");
+    row.className = "recent-item";
+    const icon =
+      r.type === "song" ? "&#9834;" : r.type === "stack" ? "&#8801;" : "&#182;";
+    const sub =
+      r.sub ||
+      (r.type === "song" ? "Song" : r.type === "stack" ? "Stack" : "Bible Verse");
+    row.innerHTML = `<span class="rx ${escapeHtml(r.type)}">${icon}</span>
+      <span class="rt"><strong>${escapeHtml(r.label)}</strong><small>${escapeHtml(sub)}</small></span>`;
+    row.addEventListener("click", () => presentRecent(r));
+    wrap.appendChild(row);
+  });
+}
+
+function presentRecent(r) {
+  if (r.items && r.items.length) {
+    if (r.type === "song") {
+      presentItems(r.items, true, 0);
+    } else {
+      presentItems(r.items, false, 0, r.isStack);
+    }
+  } else if (r.type === "stack") {
+    presentStack();
+  }
+}
+
+function quickPresent() {
+  if (state.verseStack.length > 0) {
+    presentStack();
+  } else if (state.singleVerseItems && state.singleVerseItems.length) {
+    presentItems(state.singleVerseItems, false, state.verseIndex);
+  } else if (state.songActive && state.songItems && state.songItems.length) {
+    presentItems(state.songItems, true, state.verseIndex);
+  } else {
+    const list = getRecent();
+    if (list.length) {
+      presentRecent(list[0]);
+    } else {
+      window.api.openPresentation();
+      updateDisplayStatus();
+    }
+  }
+}
+
+/* ============================================================ Presentation bar */
+
+function setupPresentationBar() {
+  const bgBtn = document.getElementById("ctrl-bg-btn");
+  const popover = document.getElementById("bg-popover");
+
+  bgBtn.addEventListener("click", () => popover.classList.toggle("hidden"));
+  document.addEventListener("mousedown", (e) => {
+    const wrap = document.getElementById("ctrl-bg-wrap");
+    if (wrap && !wrap.contains(e.target)) closeBgPopover();
+  });
+
+  popover.addEventListener("click", async (e) => {
+    const item = e.target.closest(".bar-pop-item");
+    if (!item) return;
+    if (item.dataset.bgAction === "image") {
+      selectImageDialog();
+    } else if (item.dataset.bgAction === "video") {
+      selectVideoDialog();
+    } else if (item.dataset.bgAction === "none") {
+      clearBackground();
+    } else if (item.dataset.theme) {
+      state.settings.theme = item.dataset.theme;
+      document.getElementById("theme-select").value = item.dataset.theme;
+      if (state.settings.theme !== "random") {
+        await applyThemeBackground(state.settings.theme);
+      }
+      resendToPresentation();
+    }
+    closeBgPopover();
+  });
+
+  document.getElementById("ctrl-font-minus").addEventListener("click", () => adjustFontSize(-2));
+  document.getElementById("ctrl-font-plus").addEventListener("click", () => adjustFontSize(2));
+
+  document.querySelectorAll("#align-group button").forEach((b) => {
+    b.addEventListener("click", () => {
+      state.settings.textAlign = b.dataset.align;
+      const sel = document.getElementById("text-align");
+      if (sel) sel.value = state.settings.textAlign;
+      updateDisplay();
+      sendSettings();
+    });
+  });
+
+  document.getElementById("ctrl-spacing-minus").addEventListener("click", () => adjustSpacing(-2));
+  document.getElementById("ctrl-spacing-plus").addEventListener("click", () => adjustSpacing(2));
+
+  document.getElementById("present-btn").addEventListener("click", presentCurrentContent);
+}
+
+function closeBgPopover() {
+  const pop = document.getElementById("bg-popover");
+  if (pop) pop.classList.add("hidden");
+}
+
+function adjustFontSize(delta) {
+  state.settings.fontSize = Math.max(
+    24,
+    Math.min(120, state.settings.fontSize + delta),
+  );
+  const lbl = document.getElementById("font-size-label");
+  const inp = document.getElementById("font-size");
+  if (lbl) lbl.textContent = state.settings.fontSize + "px";
+  if (inp) inp.value = state.settings.fontSize;
+  updateDisplay();
+  sendSettings();
+}
+
+function adjustSpacing(delta) {
+  state.settings.verseSpacing = Math.max(
+    8,
+    Math.min(80, state.settings.verseSpacing + delta),
+  );
+  const lbl = document.getElementById("verse-spacing-label");
+  const inp = document.getElementById("verse-spacing");
+  if (lbl) lbl.textContent = state.settings.verseSpacing + "px";
+  if (inp) inp.value = state.settings.verseSpacing;
+  updateDisplay();
+  sendSettings();
+}
+
+async function presentCurrentContent() {
+  const doPresent = async () => {
+    if (state.singleVerseItems && state.singleVerseItems.length) {
+      presentItems(state.singleVerseItems, false, state.verseIndex);
+    } else if (state.verseStack.length > 0) {
+      presentStack();
+    } else if (state.songActive && state.songItems && state.songItems.length) {
+      presentItems(state.songItems, true, state.verseIndex);
+    } else {
+      window.api.openPresentation();
+    }
+    updateDisplayStatus();
+  };
+  const pState = await window.api.getPresentationState();
+  if (!pState.isOpen) {
+    await window.api.openPresentation();
+    setTimeout(doPresent, 300);
+  } else {
+    doPresent();
+  }
+}
+
+/* ============================================================ Keyboard / presentation window */
+
 function setupPresentation() {
   function isEditing() {
     const el = document.activeElement;
@@ -1422,11 +2166,13 @@ function setupPresentation() {
       } else if (state.verseStack.length > 0) {
         presentStack();
       }
+      updateDisplayStatus();
       return;
     }
     if (e.key === "Escape") {
       if (isEditing()) return;
       await window.api.closePresentation();
+      updateDisplayStatus();
       return;
     }
     if (isEditing()) return;
@@ -1452,7 +2198,9 @@ function setupPresentation() {
     }
   });
 
-  window.api.onPresentationClosed(() => {});
+  window.api.onPresentationClosed(() => {
+    updateDisplayStatus();
+  });
 
   const mainArea = document.getElementById("display-area");
   mainArea.addEventListener("dblclick", async () => {
@@ -1475,6 +2223,7 @@ function setupPresentation() {
         presentStack();
       }
     }
+    updateDisplayStatus();
   });
 }
 

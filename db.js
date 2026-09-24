@@ -138,7 +138,7 @@ function migrateSongs(database) {
   tx();
 }
 
-function getBooks(lang) {
+function getBooks() {
   const d = getDB();
   return d
     .prepare(
@@ -162,24 +162,6 @@ function getVerses(bookId, chapter, startVerse, endVerse, lang = "nepali") {
       `SELECT verse, text FROM ${table} WHERE book = ? AND chapter = ? AND verse = ? ORDER BY verse`,
     )
     .all(bookId, chapter, startVerse);
-}
-
-function getChapterCount(bookId) {
-  const d = getDB();
-  const row = d
-    .prepare("SELECT MAX(chapter) as count FROM verses WHERE book = ?")
-    .get(bookId);
-  return row ? row.count : 0;
-}
-
-function getVerseCount(bookId, chapter) {
-  const d = getDB();
-  const row = d
-    .prepare(
-      "SELECT MAX(verse) as count FROM verses WHERE book = ? AND chapter = ?",
-    )
-    .get(bookId, chapter);
-  return row ? row.count : 0;
 }
 
 function searchVerses(keyword, lang = "nepali") {
@@ -243,13 +225,6 @@ function deleteSong(id) {
   d.prepare("DELETE FROM songs WHERE id = ?").run(id);
 }
 
-function getBookNames() {
-  const d = getDB();
-  return d
-    .prepare("SELECT id, name_nepali, name_english, romanji FROM books ORDER BY id")
-    .all();
-}
-
 function getChapterVerses(bookId, chapter, lang = "nepali") {
   const d = getDB();
   const table = lang === "nepali" ? "verses" : "en_verses";
@@ -305,14 +280,88 @@ function searchVersesDual(keyword) {
   return { nepali: results, english: enResults };
 }
 
+function exportDatabase() {
+  const d = getDB();
+  const tables = [
+    "books",
+    "verses",
+    "en_verses",
+    "songs",
+    "settings",
+    "recent",
+    "stack",
+  ];
+  const data = {};
+  for (const table of tables) {
+    try {
+      data[table] = d.prepare(`SELECT * FROM ${table}`).all();
+    } catch {
+      data[table] = [];
+    }
+  }
+  return { version: 1, exportedAt: Date.now(), data };
+}
+
+function importDatabase(jsonData) {
+  if (!jsonData || !jsonData.data) return { success: false, error: "Invalid data format" };
+  const d = getDB();
+  const tx = d.transaction(() => {
+    const tables = [
+      "books",
+      "verses",
+      "en_verses",
+      "songs",
+      "settings",
+      "recent",
+      "stack",
+    ];
+    for (const table of tables) {
+      if (!jsonData.data[table]) continue;
+      d.prepare(`DELETE FROM ${table}`).run();
+      if (jsonData.data[table].length === 0) continue;
+      const cols = d.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+      const placeholders = cols.map(() => "?").join(",");
+      const insert = d.prepare(`INSERT INTO ${table} (${cols.join(",")}) VALUES (${placeholders})`);
+      for (const row of jsonData.data[table]) {
+        const values = cols.map((c) => row[c] ?? null);
+        insert.run(...values);
+      }
+    }
+  });
+  tx();
+  return { success: true };
+}
+
+function exportSongs() {
+  const d = getDB();
+  const songs = d.prepare("SELECT * FROM songs").all();
+  return { version: 1, exportedAt: Date.now(), songs };
+}
+
+function importSongs(jsonData) {
+  if (!jsonData || !jsonData.songs) return { success: false, error: "Invalid data format" };
+  const d = getDB();
+  const tx = d.transaction(() => {
+    const cols = d.prepare("PRAGMA table_info(songs)").all().map((c) => c.name);
+    const placeholders = cols.map(() => "?").join(",");
+    const insert = d.prepare(
+      `INSERT OR REPLACE INTO songs (${cols.join(",")}) VALUES (${placeholders})`
+    );
+    for (const s of jsonData.songs) {
+      const values = cols.map((c) => s[c] ?? null);
+      insert.run(...values);
+    }
+  });
+  tx();
+  return { success: true, count: jsonData.songs.length };
+}
+
 module.exports = {
   getBooks,
   getVerses,
   getChapterVerses,
   getChapterVersesDual,
   getVersesDual,
-  getChapterCount,
-  getVerseCount,
   searchVerses,
   searchVersesDual,
   getChapters,
@@ -320,5 +369,8 @@ module.exports = {
   getSongLyrics,
   addSong,
   deleteSong,
-  getBookNames,
+  exportDatabase,
+  importDatabase,
+  exportSongs,
+  importSongs,
 };

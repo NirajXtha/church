@@ -71,19 +71,13 @@ function createPresentationWindow() {
 }
 
 function setupIPC() {
-  ipcMain.handle("get-books", (_, lang) => db.getBooks(lang));
+  ipcMain.handle("get-books", () => db.getBooks());
   ipcMain.handle(
     "get-verses",
     (_, bookId, chapter, startVerse, endVerse, lang) =>
       db.getVerses(bookId, chapter, startVerse, endVerse, lang),
   );
   ipcMain.handle("get-chapters", (_, bookId) => db.getChapters(bookId));
-  ipcMain.handle("get-chapter-count", (_, bookId) =>
-    db.getChapterCount(bookId),
-  );
-  ipcMain.handle("get-verse-count", (_, bookId, chapter) =>
-    db.getVerseCount(bookId, chapter),
-  );
   ipcMain.handle("search-verses", (_, keyword, lang) =>
     db.searchVerses(keyword, lang),
   );
@@ -109,7 +103,11 @@ function setupIPC() {
       db.addSong(title, lyrics, category, language, author, tags),
   );
   ipcMain.handle("delete-song", (_, id) => db.deleteSong(id));
-  ipcMain.handle("get-book-names", () => db.getBookNames());
+
+  ipcMain.handle("export-database", () => db.exportDatabase());
+  ipcMain.handle("import-database", (_, jsonData) => db.importDatabase(jsonData));
+  ipcMain.handle("export-songs", () => db.exportSongs());
+  ipcMain.handle("import-songs", (_, jsonData) => db.importSongs(jsonData));
 
   ipcMain.handle("open-presentation", () => {
     createPresentationWindow();
@@ -163,20 +161,6 @@ function setupIPC() {
       ? path.join(process.resourcesPath, "assets")
       : path.join(__dirname, "assets");
     return path.join(base, filename);
-  });
-
-  const THEME_FILES = [
-    "Christmas.jpg", "book-ring.jpg", "book.jpg", "candle.png",
-    "cross-sky.jpg", "cross.jpg", "dark.jpg", "flowers.jpg",
-    "man-standing.jpg", "ribbon.jpg", "rose.jpg", "sunset-cross.jpg",
-  ];
-
-  ipcMain.handle("get-random-theme-path", () => {
-    const file = THEME_FILES[Math.floor(Math.random() * THEME_FILES.length)];
-    const base = app.isPackaged
-      ? path.join(process.resourcesPath, "assets")
-      : path.join(__dirname, "assets");
-    return path.join(base, file);
   });
 
   ipcMain.handle("get-presentation-state", () => {
@@ -274,6 +258,21 @@ function setupIPC() {
   ipcMain.handle("install-update", () => {
     autoUpdater.quitAndInstall(false, true);
     return true;
+  });
+
+  ipcMain.handle("get-app-version", () => app.getVersion());
+
+  ipcMain.handle("get-display-info", () => {
+    const { screen } = require("electron");
+    const displays = screen.getAllDisplays();
+    const external = displays.find(
+      (d) => d.bounds.x !== 0 || d.bounds.y !== 0,
+    );
+    return {
+      hasExternal: !!external,
+      displayCount: displays.length,
+      presenting: presentationWin && !presentationWin.isDestroyed(),
+    };
   });
 }
 
